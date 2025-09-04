@@ -4,8 +4,6 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.hilt)
-    alias(libs.plugins.kapt)
     id("com.vanniktech.maven.publish") version "0.34.0"
 }
 
@@ -48,23 +46,31 @@ android {
 }
 
 dependencies {
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.activity.compose)
+    // Core Compose dependencies (essential for library functionality)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
-    implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    implementation(libs.hilt.android)
-    implementation(libs.hilt.navigation.compose)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
     
-    kapt(libs.hilt.compiler)
+    // Essential AndroidX dependencies (keep as implementation to avoid conflicts)
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.activity.compose)
+    
+    // Optional dependencies
+    compileOnly(libs.androidx.ui.tooling.preview)
+    
+    // Optional DI framework support (make Hilt completely optional)
+    compileOnly(libs.hilt.android)
+    compileOnly(libs.hilt.navigation.compose)
+    compileOnly(libs.hilt.compiler)
     
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.ui.test.junit4)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
@@ -78,7 +84,7 @@ mavenPublishing {
     publishToMavenCentral(automaticRelease = true)
     signAllPublications()
     
-    coordinates("io.github.ivamsi", "snapnotify", "1.0.0")
+    coordinates("io.github.ivamsi", "snapnotify", "1.0.1")
 
     pom {
         name.set("SnapNotify")
@@ -97,7 +103,7 @@ mavenPublishing {
         developers {
             developer {
                 id.set("ivamsi")
-                name.set("Vamsi V")
+                name.set("Vamsi Vaddavalli")
                 url.set("https://github.com/ivamsi")
             }
         }

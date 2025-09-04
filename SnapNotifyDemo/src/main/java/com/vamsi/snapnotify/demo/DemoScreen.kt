@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -27,7 +28,9 @@ import com.vamsi.snapnotify.SnapNotify
 import com.vamsi.snapnotify.SnackbarStyle
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,18 +61,28 @@ fun DemoScreen() {
         actionColor = Color(0xFF64B5F6),
         shape = RoundedCornerShape(4.dp)
     )
+
+    // Scroll behavior for collapsible top bar
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(title = { Text("SnapNotify Demo") })
+            TopAppBar(
+                title = { Text("SnapNotify Demo") },
+                scrollBehavior = scrollBehavior,
+                windowInsets = WindowInsets(0.dp, 0.dp)
+            )
         },
-        contentWindowInsets = WindowInsets(0.dp, 0.dp, 0.dp, 0.dp)
+        contentWindowInsets = WindowInsets(0.dp, 0.dp, 0.dp, 0.dp),
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(paddingValues),
+                .consumeWindowInsets(paddingValues)
+                .padding(paddingValues)
+                .padding(horizontal = 16.dp)
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {

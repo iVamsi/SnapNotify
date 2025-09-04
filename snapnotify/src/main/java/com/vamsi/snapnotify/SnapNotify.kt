@@ -1,10 +1,7 @@
 package com.vamsi.snapnotify
 
-import android.content.Context
 import androidx.compose.material3.SnackbarDuration
 import com.vamsi.snapnotify.core.SnackbarManager
-import com.vamsi.snapnotify.di.SnapNotifyEntryPoint
-import dagger.hilt.android.EntryPointAccessors
 
 /**
  * Public API object for SnapNotify library.
@@ -21,24 +18,17 @@ import dagger.hilt.android.EntryPointAccessors
  */
 object SnapNotify {
     
-    private var _snackbarManager: SnackbarManager? = null
-    private val snackbarManager: SnackbarManager
-        get() = _snackbarManager ?: throw IllegalStateException(
-            "SnapNotify not initialized. Make sure to use SnapNotifyProvider at the root of your app."
-        )
+    private val snackbarManager: SnackbarManager by lazy {
+        SnackbarManager.getInstance()
+    }
     
     /**
-     * Internal method to initialize SnapNotify with application context.
-     * This should only be called by SnapNotifyProvider.
+     * Internal method to ensure SnapNotify is ready to use.
+     * This is automatically called and doesn't require manual initialization.
      */
-    internal fun initialize(context: Context) {
-        if (_snackbarManager == null) {
-            val entryPoint = EntryPointAccessors.fromApplication(
-                context.applicationContext,
-                SnapNotifyEntryPoint::class.java
-            )
-            _snackbarManager = entryPoint.snackbarManager()
-        }
+    internal fun initialize() {
+        // The lazy initialization of snackbarManager handles setup automatically
+        // This method is kept for API compatibility but is now essentially a no-op
     }
     
     /**

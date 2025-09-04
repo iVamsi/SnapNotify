@@ -19,7 +19,9 @@ class SnackbarManagerTest {
 
     @Before
     fun setup() {
-        snackbarManager = SnackbarManager()
+        snackbarManager = SnackbarManager.getInstance()
+        // Clear any existing messages from previous tests
+        snackbarManager.clearAllMessages()
     }
 
     @Test

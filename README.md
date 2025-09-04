@@ -4,7 +4,9 @@
 [![Compose](https://img.shields.io/badge/Compose-1.5.0+-blue.svg)](https://developer.android.com/jetpack/compose)
 [![Android](https://img.shields.io/badge/Android-API%2024+-green.svg)](https://android-arsenal.com/api?level=24)
 [![License](https://img.shields.io/badge/License-Apache%202.0-orange.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Maven Central](https://img.shields.io/badge/Maven%20Central-1.0.0-red.svg)](https://search.maven.org/)
+[![Maven Central](https://img.shields.io/badge/Maven%20Central-1.0.1-red.svg)](https://central.sonatype.com/artifact/io.github.ivamsi/snapnotify/1.0.1)
+[![Tests](https://img.shields.io/badge/Tests-45%2B%20passing-brightgreen.svg)](#-testing)
+[![Coverage](https://img.shields.io/badge/Coverage-100%25%20Public%20API-brightgreen.svg)](#-testing)
 
 > A drop-in Snackbar solution for Jetpack Compose that brings back the simplicity of the View system while leveraging modern Compose patterns.
 
@@ -73,9 +75,12 @@ Add to your `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("io.github.ivamsi:snapnotify:1.0.0")
+    implementation("io.github.ivamsi:snapnotify:1.0.1")
 }
 ```
+
+**Hilt Integration (Optional):**
+SnapNotify works with or without Hilt! If you use Hilt, no additional setup needed.
 
 ## 🎯 Quick Start
 
@@ -371,7 +376,7 @@ SnapNotify uses a clean, efficient architecture:
 - **SnackbarManager**: Thread-safe singleton managing message queue
 - **SnapNotifyProvider**: Root composable handling UI display
 - **StateFlow**: Reactive message streaming
-- **Hilt**: Dependency injection for lifecycle management
+- **Optional DI**: Works with or without dependency injection frameworks
 
 ## 🔧 Configuration
 
@@ -385,14 +390,9 @@ SnapNotifyProvider(
 }
 ```
 
-### Hilt Setup
+### Hilt Integration (Optional)
 
-Add to your `Application` class:
-
-```kotlin
-@HiltAndroidApp
-class MyApplication : Application()
-```
+SnapNotify works without any DI framework. If you use Hilt in your project, it integrates seamlessly - no additional setup needed!
 
 ## 📋 API Reference
 
@@ -496,15 +496,28 @@ data class SnackbarStyle(
 
 ## 🧪 Testing
 
-SnapNotify includes comprehensive tests:
+SnapNotify includes comprehensive test coverage with **45+ test cases** covering **100% of the public API**:
 
+### Test Coverage
+- **✅ Public API Methods**: All 13 SnapNotify methods tested
+- **✅ Styling System**: Complete SnackbarStyle functionality
+- **✅ Message Queueing**: Thread-safe queue management
+- **✅ Action Callbacks**: User interaction handling
+- **✅ Integration Tests**: End-to-end behavior verification
+
+### Running Tests
 ```bash
 # Run unit tests
 ./gradlew :snapnotify:test
 
 # Run all tests including UI tests
 ./gradlew :snapnotify:check
+
+# View test report
+open snapnotify/build/reports/tests/testDebugUnitTest/index.html
 ```
+
+The comprehensive test suite ensures reliability and catches regressions during development.
 
 ## 📱 Example App
 
@@ -518,7 +531,7 @@ Check out the `SnapNotifyDemo` module for a complete demo:
 ## 📄 License
 
 ```
-Copyright 2025 SnapNotify
+Copyright 2025 Vamsi Vaddavalli
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

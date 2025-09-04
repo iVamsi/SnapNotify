@@ -18,7 +18,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 
@@ -57,10 +56,10 @@ fun SnapNotifyProvider(
         return
     }
     
-    val viewModel: SnapNotifyViewModel = hiltViewModel()
-    val currentMessage = viewModel.currentMessage.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val snapNotifyState = rememberSimpleSnapNotifyState(scope)
+    val currentMessage = snapNotifyState.currentMessage.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
     val snackbarStyle = style ?: SnackbarStyle.default()
     
     // Register this provider and track its lifecycle
@@ -72,9 +71,9 @@ fun SnapNotifyProvider(
         }
     }
     
-    // Initialize SnapNotify with the current context
+    // Initialize SnapNotify 
     LaunchedEffect(Unit) {
-        SnapNotify.initialize(context)
+        SnapNotify.initialize()
     }
     
     // Handle message display
@@ -98,7 +97,7 @@ fun SnapNotifyProvider(
                 }
                 
                 // Dismiss current message and show next one if queued
-                viewModel.dismissCurrent()
+                snapNotifyState.dismissCurrent()
             }
         }
     }

@@ -8,9 +8,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.ConcurrentLinkedQueue
-import javax.inject.Inject
-import javax.inject.Singleton
-
 /**
  * Thread-safe singleton that manages a queue of snackbar messages.
  * 
@@ -18,8 +15,18 @@ import javax.inject.Singleton
  * Messages are queued when multiple snackbars are triggered rapidly and displayed
  * sequentially through StateFlow emissions.
  */
-@Singleton
-class SnackbarManager @Inject constructor() {
+internal class SnackbarManager private constructor() {
+    
+    companion object {
+        @Volatile
+        private var INSTANCE: SnackbarManager? = null
+        
+        fun getInstance(): SnackbarManager {
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: SnackbarManager().also { INSTANCE = it }
+            }
+        }
+    }
     
     private val messageQueue = ConcurrentLinkedQueue<SnackbarMessage>()
     private val _messages = MutableStateFlow<SnackbarMessage?>(null)

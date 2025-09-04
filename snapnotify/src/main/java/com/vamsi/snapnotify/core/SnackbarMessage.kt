@@ -14,7 +14,7 @@ import java.util.UUID
  * @param onAction Optional action to execute when action button is pressed
  * @param style Optional custom styling for this specific message
  */
-data class SnackbarMessage(
+internal data class SnackbarMessage(
     val id: String = UUID.randomUUID().toString(),
     val text: String,
     val duration: SnackbarDuration = SnackbarDuration.Short,
