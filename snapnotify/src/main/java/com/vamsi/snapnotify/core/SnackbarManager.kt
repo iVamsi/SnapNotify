@@ -5,6 +5,7 @@ import com.vamsi.snapnotify.SnackbarStyle
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -135,6 +136,7 @@ internal class SnackbarManager private constructor() {
     
     /**
      * Non-suspending version of show with custom styling and action support.
+     * This method is thread-safe and can be called from any thread.
      *
      * @param message The text to display
      * @param duration How long the snackbar should be displayed
@@ -157,11 +159,18 @@ internal class SnackbarManager private constructor() {
             style = style
         )
         
-        // Use a simple lock-free approach for non-suspending calls
-        if (_messages.value == null) {
-            _messages.value = snackbarMessage
-        } else {
-            messageQueue.offer(snackbarMessage)
+        // Use runBlocking with mutex for thread safety
+        // This ensures atomic operations even from background threads
+        runBlocking {
+            mutex.withLock {
+                if (_messages.value == null) {
+                    // No message currently displayed, show immediately
+                    _messages.value = snackbarMessage
+                } else {
+                    // Queue the message for later display
+                    messageQueue.offer(snackbarMessage)
+                }
+            }
         }
     }
     
@@ -188,10 +197,14 @@ internal class SnackbarManager private constructor() {
     
     /**
      * Non-suspending version of clearAll for calling from anywhere without coroutine scope.
+     * This method is thread-safe and can be called from any thread.
      */
     fun clearAllMessages() {
-        // Use a simple approach for non-suspending calls
-        messageQueue.clear()
-        _messages.value = null
+        runBlocking {
+            mutex.withLock {
+                messageQueue.clear()
+                _messages.value = null
+            }
+        }
     }
 }

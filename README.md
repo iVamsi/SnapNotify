@@ -4,7 +4,7 @@
 [![Compose](https://img.shields.io/badge/Compose-1.5.0+-blue.svg)](https://developer.android.com/jetpack/compose)
 [![Android](https://img.shields.io/badge/Android-API%2024+-green.svg)](https://android-arsenal.com/api?level=24)
 [![License](https://img.shields.io/badge/License-Apache%202.0-orange.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Maven Central](https://img.shields.io/badge/Maven%20Central-1.0.1-red.svg)](https://central.sonatype.com/artifact/io.github.ivamsi/snapnotify/1.0.1)
+[![Maven Central](https://img.shields.io/badge/Maven%20Central-1.0.2-red.svg)](https://central.sonatype.com/artifact/io.github.ivamsi/snapnotify/1.0.2)
 [![Tests](https://img.shields.io/badge/Tests-45%2B%20passing-brightgreen.svg)](#-testing)
 [![Coverage](https://img.shields.io/badge/Coverage-100%25%20Public%20API-brightgreen.svg)](#-testing)
 
@@ -75,7 +75,7 @@ Add to your `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("io.github.ivamsi:snapnotify:1.0.1")
+    implementation("io.github.ivamsi:snapnotify:1.0.2")
 }
 ```
 
@@ -183,7 +183,8 @@ SnapNotify.showStyled("Custom styled message!", customStyle)
 - No `SnackbarHostState` or `CoroutineScope` management needed
 
 ### ✅ Thread-Safe
-- Call from background threads, ViewModels, repositories - anywhere!
+- Call from ViewModels and Composables safely
+- Background thread support with proper synchronization
 - No more `IllegalStateException` crashes
 
 ### ✅ Smart Queue Management  
@@ -323,41 +324,58 @@ SnapNotifyProvider(
 }
 ```
 
-### From Different Contexts
+### Clean Architecture Usage
+
+Following best practices, handle UI notifications in the presentation layer:
 
 ```kotlin
-// From ViewModel
-class MyViewModel : ViewModel() {
-    fun saveData() {
-        // Background operation
-        viewModelScope.launch(Dispatchers.IO) {
+// ✅ Recommended: ViewModels handle notifications
+class ProfileViewModel : ViewModel() {
+    private val repository = UserRepository()
+    
+    fun saveProfile() {
+        viewModelScope.launch {
             try {
-                repository.saveData()
-                SnapNotify.show("Data saved successfully!")
+                repository.saveProfile()
+                SnapNotify.showSuccess("Profile saved!")
             } catch (e: Exception) {
-                SnapNotify.show("Save failed", "Retry") { saveData() }
+                SnapNotify.showError("Save failed", "Retry") { saveProfile() }
             }
         }
     }
 }
 
-// From Repository/UseCase
-class DataRepository {
-    suspend fun uploadFile() {
-        // Network call
-        try {
-            api.upload()
-            SnapNotify.show("File uploaded!")
+// ✅ Clean: Repositories focus on data operations
+class UserRepository {
+    suspend fun saveProfile(): Result<Unit> {
+        return try {
+            api.updateProfile()
+            Result.success(Unit)
         } catch (e: Exception) {
-            SnapNotify.show("Upload failed: ${e.message}")
+            Result.failure(e)
         }
+    }
+}
+
+// ✅ Alternative: Direct from Composables
+@Composable
+fun SaveButton() {
+    val viewModel: ProfileViewModel = hiltViewModel()
+    
+    Button(
+        onClick = {
+            viewModel.saveProfile()
+            // SnapNotify calls handled in ViewModel
+        }
+    ) {
+        Text("Save")
     }
 }
 ```
 
-## 🏗 Architecture
+## 🏗 Architecture & Best Practices
 
-SnapNotify uses a clean, efficient architecture:
+SnapNotify follows clean architecture principles with proper separation of concerns:
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
@@ -372,11 +390,18 @@ SnapNotify uses a clean, efficient architecture:
                        └──────────────────┘    └─────────────────┘
 ```
 
-- **SnapNotify**: Simple public API
-- **SnackbarManager**: Thread-safe singleton managing message queue
-- **SnapNotifyProvider**: Root composable handling UI display
-- **StateFlow**: Reactive message streaming
+### Architectural Layers
+- **Presentation Layer**: ViewModels and Composables handle SnapNotify calls
+- **Domain Layer**: Use Cases return `Result<T>` or throw exceptions
+- **Data Layer**: Repositories focus purely on data operations
+- **UI Layer**: SnapNotifyProvider manages display and styling
+
+### Design Principles
+- **Thread Safety**: Internal mutex synchronization for concurrent access
+- **Clean Architecture**: UI concerns separated from business logic
+- **Reactive Streams**: StateFlow-based message queue management  
 - **Optional DI**: Works with or without dependency injection frameworks
+- **Single Responsibility**: Each component has a focused purpose
 
 ## 🔧 Configuration
 
