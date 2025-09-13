@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.dp
 
 /**
  * A customizable snackbar composable that applies the provided SnackbarStyle.
- * 
+ *
  * @param snackbarData The snackbar data containing message and action information
  * @param style The styling configuration to apply
  * @param modifier Modifier for the snackbar
@@ -30,32 +30,32 @@ import androidx.compose.ui.unit.dp
 internal fun StyledSnackbar(
     snackbarData: SnackbarData,
     style: SnackbarStyle,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val containerColor = if (style.containerColor != Color.Unspecified) {
         style.containerColor
     } else {
         MaterialTheme.colorScheme.inverseSurface
     }
-    
+
     val contentColor = if (style.contentColor != Color.Unspecified) {
         style.contentColor
     } else {
         MaterialTheme.colorScheme.inverseOnSurface
     }
-    
+
     val actionColor = if (style.actionColor != Color.Unspecified) {
         style.actionColor
     } else {
         MaterialTheme.colorScheme.inversePrimary
     }
-    
+
     val messageTextStyle = style.messageTextStyle ?: MaterialTheme.typography.bodyMedium
     val actionTextStyle = style.actionTextStyle ?: MaterialTheme.typography.labelLarge
-    
+
     val shape = style.shape ?: MaterialTheme.shapes.small
     val elevation = style.elevation ?: 6.dp
-    
+
     // Create a custom snackbar with full styling control
     Surface(
         modifier = modifier.padding(horizontal = 16.dp),
@@ -76,7 +76,7 @@ internal fun StyledSnackbar(
                 color = contentColor,
                 modifier = Modifier.weight(1f)
             )
-            
+
             snackbarData.visuals.actionLabel?.let { actionLabel ->
                 TextButton(
                     onClick = { snackbarData.performAction() },

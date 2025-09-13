@@ -2,6 +2,7 @@ package com.vamsi.snapnotify.core
 
 import androidx.compose.material3.SnackbarDuration
 import com.vamsi.snapnotify.SnackbarStyle
+import com.vamsi.snapnotify.SnackbarDurationWrapper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -9,36 +10,37 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.ConcurrentLinkedQueue
+
 /**
  * Thread-safe singleton that manages a queue of snackbar messages.
- * 
+ *
  * This class handles message queuing, emission, and dismissal in a thread-safe manner.
  * Messages are queued when multiple snackbars are triggered rapidly and displayed
  * sequentially through StateFlow emissions.
  */
 internal class SnackbarManager private constructor() {
-    
+
     companion object {
         @Volatile
         private var INSTANCE: SnackbarManager? = null
-        
+
         fun getInstance(): SnackbarManager {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: SnackbarManager().also { INSTANCE = it }
             }
         }
     }
-    
+
     private val messageQueue = ConcurrentLinkedQueue<SnackbarMessage>()
     private val _messages = MutableStateFlow<SnackbarMessage?>(null)
     private val mutex = Mutex()
-    
+
     /**
      * StateFlow of messages that need to be displayed.
      * Observers should collect this flow to display snackbars.
      */
     val messages: StateFlow<SnackbarMessage?> = _messages.asStateFlow()
-    
+
     /**
      * Shows a simple snackbar message.
      *
@@ -46,12 +48,12 @@ internal class SnackbarManager private constructor() {
      * @param duration How long the snackbar should be displayed
      */
     suspend fun show(
-        message: String, 
-        duration: SnackbarDuration = SnackbarDuration.Short
+        message: String,
+        duration: SnackbarDuration = SnackbarDuration.Short,
     ) {
         show(message, duration, null, null)
     }
-    
+
     /**
      * Shows a snackbar message with an optional action button.
      *
@@ -64,11 +66,11 @@ internal class SnackbarManager private constructor() {
         message: String,
         duration: SnackbarDuration = SnackbarDuration.Short,
         actionLabel: String? = null,
-        onAction: (() -> Unit)? = null
+        onAction: (() -> Unit)? = null,
     ) {
         show(message, duration, actionLabel, onAction, null)
     }
-    
+
     /**
      * Shows a snackbar message with custom styling and optional action button.
      *
@@ -83,7 +85,7 @@ internal class SnackbarManager private constructor() {
         duration: SnackbarDuration = SnackbarDuration.Short,
         actionLabel: String? = null,
         onAction: (() -> Unit)? = null,
-        style: SnackbarStyle? = null
+        style: SnackbarStyle? = null,
     ) {
         val snackbarMessage = SnackbarMessage(
             text = message,
@@ -92,7 +94,7 @@ internal class SnackbarManager private constructor() {
             onAction = onAction,
             style = style
         )
-        
+
         mutex.withLock {
             if (_messages.value == null) {
                 // No message currently displayed, show immediately
@@ -103,7 +105,7 @@ internal class SnackbarManager private constructor() {
             }
         }
     }
-    
+
     /**
      * Non-suspending version of show for calling from anywhere without coroutine scope.
      *
@@ -111,12 +113,12 @@ internal class SnackbarManager private constructor() {
      * @param duration How long the snackbar should be displayed
      */
     fun showMessage(
-        message: String, 
-        duration: SnackbarDuration = SnackbarDuration.Short
+        message: String,
+        duration: SnackbarDuration = SnackbarDuration.Short,
     ) {
         showMessage(message, duration, null, null)
     }
-    
+
     /**
      * Non-suspending version of show with action support.
      *
@@ -129,11 +131,11 @@ internal class SnackbarManager private constructor() {
         message: String,
         duration: SnackbarDuration = SnackbarDuration.Short,
         actionLabel: String? = null,
-        onAction: (() -> Unit)? = null
+        onAction: (() -> Unit)? = null,
     ) {
         showMessage(message, duration, actionLabel, onAction, null)
     }
-    
+
     /**
      * Non-suspending version of show with custom styling and action support.
      * This method is thread-safe and can be called from any thread.
@@ -149,7 +151,7 @@ internal class SnackbarManager private constructor() {
         duration: SnackbarDuration = SnackbarDuration.Short,
         actionLabel: String? = null,
         onAction: (() -> Unit)? = null,
-        style: SnackbarStyle? = null
+        style: SnackbarStyle? = null,
     ) {
         val snackbarMessage = SnackbarMessage(
             text = message,
@@ -158,7 +160,7 @@ internal class SnackbarManager private constructor() {
             onAction = onAction,
             style = style
         )
-        
+
         // Use runBlocking with mutex for thread safety
         // This ensures atomic operations even from background threads
         runBlocking {
@@ -173,7 +175,7 @@ internal class SnackbarManager private constructor() {
             }
         }
     }
-    
+
     /**
      * Dismisses the current message and shows the next queued message if any.
      * This should be called when a snackbar is dismissed.
@@ -184,7 +186,7 @@ internal class SnackbarManager private constructor() {
             _messages.value = nextMessage
         }
     }
-    
+
     /**
      * Clears all queued messages and the current message.
      */
@@ -194,7 +196,7 @@ internal class SnackbarManager private constructor() {
             _messages.value = null
         }
     }
-    
+
     /**
      * Non-suspending version of clearAll for calling from anywhere without coroutine scope.
      * This method is thread-safe and can be called from any thread.
@@ -204,6 +206,141 @@ internal class SnackbarManager private constructor() {
             mutex.withLock {
                 messageQueue.clear()
                 _messages.value = null
+            }
+        }
+    }
+
+    // Custom duration methods
+
+    /**
+     * Shows a snackbar message with custom duration in milliseconds.
+     *
+     * @param message The text to display
+     * @param durationMillis Duration in milliseconds
+     */
+    suspend fun showWithCustomDuration(
+        message: String,
+        durationMillis: Long,
+    ) {
+        showWithCustomDuration(message, durationMillis, null, null, null)
+    }
+
+    /**
+     * Shows a snackbar message with custom duration and action button.
+     *
+     * @param message The text to display
+     * @param durationMillis Duration in milliseconds
+     * @param actionLabel Optional action button label
+     * @param onAction Optional action to execute when action button is pressed
+     */
+    suspend fun showWithCustomDuration(
+        message: String,
+        durationMillis: Long,
+        actionLabel: String? = null,
+        onAction: (() -> Unit)? = null,
+    ) {
+        showWithCustomDuration(message, durationMillis, actionLabel, onAction, null)
+    }
+
+    /**
+     * Shows a snackbar message with custom duration, action button, and styling.
+     *
+     * @param message The text to display
+     * @param durationMillis Duration in milliseconds
+     * @param actionLabel Optional action button label
+     * @param onAction Optional action to execute when action button is pressed
+     * @param style Optional custom styling for this message
+     */
+    suspend fun showWithCustomDuration(
+        message: String,
+        durationMillis: Long,
+        actionLabel: String? = null,
+        onAction: (() -> Unit)? = null,
+        style: SnackbarStyle? = null,
+    ) {
+        val customDuration = SnackbarDurationWrapper.fromMillis(durationMillis)
+        val snackbarMessage = SnackbarMessage(
+            text = message,
+            duration = SnackbarDuration.Short, // Fallback for compatibility
+            actionLabel = actionLabel,
+            onAction = onAction,
+            style = style,
+            customDuration = customDuration
+        )
+
+        mutex.withLock {
+            if (_messages.value == null) {
+                _messages.value = snackbarMessage
+            } else {
+                messageQueue.offer(snackbarMessage)
+            }
+        }
+    }
+
+    /**
+     * Non-suspending version for custom duration in milliseconds.
+     *
+     * @param message The text to display
+     * @param durationMillis Duration in milliseconds
+     */
+    fun showMessageWithCustomDuration(
+        message: String,
+        durationMillis: Long,
+    ) {
+        showMessageWithCustomDuration(message, durationMillis, null, null, null)
+    }
+
+    /**
+     * Non-suspending version for custom duration with action button.
+     *
+     * @param message The text to display
+     * @param durationMillis Duration in milliseconds
+     * @param actionLabel Optional action button label
+     * @param onAction Optional action to execute when action button is pressed
+     */
+    fun showMessageWithCustomDuration(
+        message: String,
+        durationMillis: Long,
+        actionLabel: String? = null,
+        onAction: (() -> Unit)? = null,
+    ) {
+        showMessageWithCustomDuration(message, durationMillis, actionLabel, onAction, null)
+    }
+
+    /**
+     * Non-suspending version for custom duration with action button and styling.
+     * This method is thread-safe and can be called from any thread.
+     *
+     * @param message The text to display
+     * @param durationMillis Duration in milliseconds
+     * @param actionLabel Optional action button label
+     * @param onAction Optional action to execute when action button is pressed
+     * @param style Optional custom styling for this message
+     */
+    fun showMessageWithCustomDuration(
+        message: String,
+        durationMillis: Long,
+        actionLabel: String? = null,
+        onAction: (() -> Unit)? = null,
+        style: SnackbarStyle? = null,
+    ) {
+        val customDuration = SnackbarDurationWrapper.fromMillis(durationMillis)
+        val snackbarMessage = SnackbarMessage(
+            text = message,
+            duration = SnackbarDuration.Short, // Fallback for compatibility
+            actionLabel = actionLabel,
+            onAction = onAction,
+            style = style,
+            customDuration = customDuration
+        )
+
+        runBlocking {
+            mutex.withLock {
+                if (_messages.value == null) {
+                    _messages.value = snackbarMessage
+                } else {
+                    messageQueue.offer(snackbarMessage)
+                }
             }
         }
     }

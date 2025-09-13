@@ -4,8 +4,8 @@
 [![Compose](https://img.shields.io/badge/Compose-1.5.0+-blue.svg)](https://developer.android.com/jetpack/compose)
 [![Android](https://img.shields.io/badge/Android-API%2024+-green.svg)](https://android-arsenal.com/api?level=24)
 [![License](https://img.shields.io/badge/License-Apache%202.0-orange.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Maven Central](https://img.shields.io/badge/Maven%20Central-1.0.2-red.svg)](https://central.sonatype.com/artifact/io.github.ivamsi/snapnotify/1.0.2)
-[![Tests](https://img.shields.io/badge/Tests-45%2B%20passing-brightgreen.svg)](#-testing)
+[![Maven Central](https://img.shields.io/badge/Maven%20Central-1.0.3-red.svg)](https://central.sonatype.com/artifact/io.github.ivamsi/snapnotify/1.0.3)
+[![Tests](https://img.shields.io/badge/Tests-65%2B%20passing-brightgreen.svg)](#-testing)
 [![Coverage](https://img.shields.io/badge/Coverage-100%25%20Public%20API-brightgreen.svg)](#-testing)
 
 > A drop-in Snackbar solution for Jetpack Compose that brings back the simplicity of the View system while leveraging modern Compose patterns.
@@ -75,7 +75,7 @@ Add to your `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("io.github.ivamsi:snapnotify:1.0.2")
+    implementation("io.github.ivamsi:snapnotify:1.0.3")
 }
 ```
 
@@ -153,6 +153,9 @@ SnapNotify.show("Error occurred", "Retry") {
 // With custom duration
 SnapNotify.show("Long message", duration = SnackbarDuration.Long)
 
+// With custom duration in milliseconds
+SnapNotify.show("7 second message", durationMillis = 7000)
+
 // Clear all pending messages
 SnapNotify.clearAll()
 
@@ -166,6 +169,10 @@ SnapNotify.showInfo("Here's some information!")
 SnapNotify.showSuccess("File saved!", "View") { openFile() }
 SnapNotify.showError("Upload failed", "Retry") { retryUpload() }
 
+// Themed methods with custom duration
+SnapNotify.showError("Network timeout", "Retry", { retry() }, durationMillis = 8000)
+SnapNotify.showSuccess("Quick success!", durationMillis = 2000)
+
 // Custom styling for specific messages
 val customStyle = SnackbarStyle(
     containerColor = Color(0xFF6A1B9A),
@@ -173,9 +180,15 @@ val customStyle = SnackbarStyle(
     actionColor = Color(0xFFE1BEE7)
 )
 SnapNotify.showStyled("Custom styled message!", customStyle)
+SnapNotify.showStyled("10 second custom style", customStyle, durationMillis = 10000)
 ```
 
 ## 🌟 Key Features
+
+### 🆕 Latest Updates
+- **Custom Duration Support**: Now supports precise millisecond timing control for all methods
+- **Enhanced Thread Safety**: Improved concurrent access handling and error resilience
+- **Expanded Test Coverage**: 65+ tests covering custom durations and edge cases
 
 ### ✅ Flexible Setup
 - Use `SnapNotifyProvider` at any level of your app hierarchy
@@ -221,6 +234,10 @@ SnapNotify.show("Profile updated successfully!")
 SnapNotify.show("Quick message", duration = SnackbarDuration.Short)
 SnapNotify.show("Important info", duration = SnackbarDuration.Long)
 SnapNotify.show("Persistent message", duration = SnackbarDuration.Indefinite)
+
+// Custom durations in milliseconds
+SnapNotify.show("2 second message", durationMillis = 2000)
+SnapNotify.show("30 second timeout", durationMillis = 30000)
 ```
 
 ### Action Buttons
@@ -239,6 +256,44 @@ SnapNotify.show("Network error", "Retry") {
 // Clear pending messages when navigating or context changes
 SnapNotify.clearAll()
 ```
+
+### ⏱️ Custom Duration Control
+
+Precise timing control with millisecond accuracy:
+
+```kotlin
+// Quick notifications (1-3 seconds)
+SnapNotify.show("Quick toast", durationMillis = 1500)
+SnapNotify.showSuccess("Saved!", durationMillis = 2000)
+
+// Standard notifications (4-8 seconds)
+SnapNotify.show("Processing complete", durationMillis = 5000)
+SnapNotify.showInfo("New feature available", durationMillis = 6000)
+
+// Long notifications (10+ seconds)
+SnapNotify.showError("Network error - retrying in 15s", "Retry Now", {
+    retryNetworkCall()
+}, durationMillis = 15000)
+
+// Custom styled with timing
+val urgentStyle = SnackbarStyle(
+    containerColor = Color.Red,
+    contentColor = Color.White
+)
+SnapNotify.showStyled("Critical alert!", urgentStyle, durationMillis = 12000)
+
+// With action buttons - users can still interact before timeout
+SnapNotify.showWarning("Auto-save in 10 seconds", "Save Now", {
+    saveManually()
+}, durationMillis = 10000)
+```
+
+**Key Benefits:**
+- **Precise Control**: Set exact durations from 1ms to several minutes
+- **User Priority**: Action buttons remain functional during custom timeouts
+- **All Methods**: Works with `show()`, `showSuccess()`, `showError()`, `showWarning()`, `showInfo()`, and `showStyled()`
+- **Automatic Cleanup**: Messages auto-dismiss after the specified time
+- **Thread-Safe**: Safe to call from background threads with custom durations
 
 ### 🎨 Themed Messages
 
@@ -427,58 +482,84 @@ SnapNotify works without any DI framework. If you use Hilt in your project, it i
 object SnapNotify {
     // Basic messages
     fun show(message: String, duration: SnackbarDuration = SnackbarDuration.Short)
+    fun show(message: String, duration: SnackbarDuration = SnackbarDuration.Short, durationMillis: Long? = null)
     fun show(
-        message: String, 
-        actionLabel: String, 
+        message: String,
+        actionLabel: String,
         onAction: () -> Unit,
         duration: SnackbarDuration = SnackbarDuration.Short
+    )
+    fun show(
+        message: String,
+        actionLabel: String,
+        onAction: () -> Unit,
+        duration: SnackbarDuration = SnackbarDuration.Short,
+        durationMillis: Long? = null
     )
     
     // Custom styled messages
     fun showStyled(
-        message: String, 
+        message: String,
         style: SnackbarStyle,
         duration: SnackbarDuration = SnackbarDuration.Short
     )
     fun showStyled(
-        message: String, 
+        message: String,
         style: SnackbarStyle,
-        actionLabel: String, 
+        duration: SnackbarDuration = SnackbarDuration.Short,
+        durationMillis: Long? = null
+    )
+    fun showStyled(
+        message: String,
+        style: SnackbarStyle,
+        actionLabel: String,
         onAction: () -> Unit,
         duration: SnackbarDuration = SnackbarDuration.Short
     )
+    fun showStyled(
+        message: String,
+        style: SnackbarStyle,
+        actionLabel: String,
+        onAction: () -> Unit,
+        duration: SnackbarDuration = SnackbarDuration.Short,
+        durationMillis: Long? = null
+    )
     
-    // Themed messages
-    fun showSuccess(message: String, duration: SnackbarDuration = SnackbarDuration.Short)
+    // Themed messages (all support durationMillis parameter)
+    fun showSuccess(message: String, duration: SnackbarDuration = SnackbarDuration.Short, durationMillis: Long? = null)
     fun showSuccess(
-        message: String, 
-        actionLabel: String, 
+        message: String,
+        actionLabel: String,
         onAction: () -> Unit,
-        duration: SnackbarDuration = SnackbarDuration.Short
+        duration: SnackbarDuration = SnackbarDuration.Short,
+        durationMillis: Long? = null
     )
-    
-    fun showError(message: String, duration: SnackbarDuration = SnackbarDuration.Short)
+
+    fun showError(message: String, duration: SnackbarDuration = SnackbarDuration.Short, durationMillis: Long? = null)
     fun showError(
-        message: String, 
-        actionLabel: String, 
+        message: String,
+        actionLabel: String,
         onAction: () -> Unit,
-        duration: SnackbarDuration = SnackbarDuration.Short
+        duration: SnackbarDuration = SnackbarDuration.Short,
+        durationMillis: Long? = null
     )
-    
-    fun showWarning(message: String, duration: SnackbarDuration = SnackbarDuration.Short)
+
+    fun showWarning(message: String, duration: SnackbarDuration = SnackbarDuration.Short, durationMillis: Long? = null)
     fun showWarning(
-        message: String, 
-        actionLabel: String, 
+        message: String,
+        actionLabel: String,
         onAction: () -> Unit,
-        duration: SnackbarDuration = SnackbarDuration.Short
+        duration: SnackbarDuration = SnackbarDuration.Short,
+        durationMillis: Long? = null
     )
-    
-    fun showInfo(message: String, duration: SnackbarDuration = SnackbarDuration.Short)
+
+    fun showInfo(message: String, duration: SnackbarDuration = SnackbarDuration.Short, durationMillis: Long? = null)
     fun showInfo(
-        message: String, 
-        actionLabel: String, 
+        message: String,
+        actionLabel: String,
         onAction: () -> Unit,
-        duration: SnackbarDuration = SnackbarDuration.Short
+        duration: SnackbarDuration = SnackbarDuration.Short,
+        durationMillis: Long? = null
     )
     
     // Management
@@ -521,13 +602,16 @@ data class SnackbarStyle(
 
 ## 🧪 Testing
 
-SnapNotify includes comprehensive test coverage with **45+ test cases** covering **100% of the public API**:
+SnapNotify includes comprehensive test coverage with **65+ test cases** covering **100% of the public API**:
 
 ### Test Coverage
 - **✅ Public API Methods**: All 13 SnapNotify methods tested
+- **✅ Custom Duration System**: Complete SnackbarDurationWrapper functionality
 - **✅ Styling System**: Complete SnackbarStyle functionality
 - **✅ Message Queueing**: Thread-safe queue management
 - **✅ Action Callbacks**: User interaction handling
+- **✅ Timeout Handling**: Custom duration timeout behavior
+- **✅ Edge Cases**: Boundary value testing and error scenarios
 - **✅ Integration Tests**: End-to-end behavior verification
 
 ### Running Tests

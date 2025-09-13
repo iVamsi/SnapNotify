@@ -1,6 +1,7 @@
 package com.vamsi.snapnotify
 
 import androidx.compose.material3.SnackbarDuration
+import androidx.compose.ui.graphics.Color
 import com.vamsi.snapnotify.core.SnackbarManager
 
 /**
@@ -39,12 +40,18 @@ object SnapNotify {
      *
      * @param message The text to display
      * @param duration How long the snackbar should be displayed
+     * @param durationMillis Custom duration in milliseconds. If provided, overrides duration parameter.
      */
     fun show(
         message: String,
-        duration: SnackbarDuration = SnackbarDuration.Short
+        duration: SnackbarDuration = SnackbarDuration.Short,
+        durationMillis: Long? = null
     ) {
-        snackbarManager.showMessage(message, duration)
+        if (durationMillis != null) {
+            snackbarManager.showMessageWithCustomDuration(message, durationMillis)
+        } else {
+            snackbarManager.showMessage(message, duration)
+        }
     }
     
     /**
@@ -57,14 +64,20 @@ object SnapNotify {
      * @param actionLabel The label for the action button
      * @param onAction The action to execute when the action button is pressed
      * @param duration How long the snackbar should be displayed
+     * @param durationMillis Custom duration in milliseconds. If provided, overrides duration parameter.
      */
     fun show(
         message: String,
         actionLabel: String,
         onAction: () -> Unit,
-        duration: SnackbarDuration = SnackbarDuration.Short
+        duration: SnackbarDuration = SnackbarDuration.Short,
+        durationMillis: Long? = null
     ) {
-        snackbarManager.showMessage(message, duration, actionLabel, onAction)
+        if (durationMillis != null) {
+            snackbarManager.showMessageWithCustomDuration(message, durationMillis, actionLabel, onAction)
+        } else {
+            snackbarManager.showMessage(message, duration, actionLabel, onAction)
+        }
     }
     
     /**
@@ -76,13 +89,19 @@ object SnapNotify {
      * @param message The text to display
      * @param style The custom style to apply to the snackbar
      * @param duration How long the snackbar should be displayed
+     * @param durationMillis Custom duration in milliseconds. If provided, overrides duration parameter.
      */
     fun showStyled(
         message: String,
         style: SnackbarStyle,
-        duration: SnackbarDuration = SnackbarDuration.Short
+        duration: SnackbarDuration = SnackbarDuration.Short,
+        durationMillis: Long? = null
     ) {
-        snackbarManager.showMessage(message, duration, null, null, style)
+        if (durationMillis != null) {
+            snackbarManager.showMessageWithCustomDuration(message, durationMillis, null, null, style)
+        } else {
+            snackbarManager.showMessage(message, duration, null, null, style)
+        }
     }
     
     /**
@@ -96,15 +115,21 @@ object SnapNotify {
      * @param actionLabel The label for the action button
      * @param onAction The action to execute when the action button is pressed
      * @param duration How long the snackbar should be displayed
+     * @param durationMillis Custom duration in milliseconds. If provided, overrides duration parameter.
      */
     fun showStyled(
         message: String,
         style: SnackbarStyle,
         actionLabel: String,
         onAction: () -> Unit,
-        duration: SnackbarDuration = SnackbarDuration.Short
+        duration: SnackbarDuration = SnackbarDuration.Short,
+        durationMillis: Long? = null
     ) {
-        snackbarManager.showMessage(message, duration, actionLabel, onAction, style)
+        if (durationMillis != null) {
+            snackbarManager.showMessageWithCustomDuration(message, durationMillis, actionLabel, onAction, style)
+        } else {
+            snackbarManager.showMessage(message, duration, actionLabel, onAction, style)
+        }
     }
     
     /**
@@ -112,18 +137,23 @@ object SnapNotify {
      * 
      * @param message The text to display
      * @param duration How long the snackbar should be displayed
+     * @param durationMillis Custom duration in milliseconds. If provided, overrides duration parameter.
      */
     fun showSuccess(
         message: String,
-        duration: SnackbarDuration = SnackbarDuration.Short
+        duration: SnackbarDuration = SnackbarDuration.Short,
+        durationMillis: Long? = null
     ) {
-        // Note: We can't use SnackbarStyle.success() here because it's a @Composable function
-        // The style will be applied when the message is displayed in the UI
-        snackbarManager.showMessage(message, duration, null, null, SnackbarStyle(
+        val style = SnackbarStyle(
             containerColor = androidx.compose.ui.graphics.Color(0xFF2E7D32),
             contentColor = androidx.compose.ui.graphics.Color.White,
             actionColor = androidx.compose.ui.graphics.Color(0xFF81C784)
-        ))
+        )
+        if (durationMillis != null) {
+            snackbarManager.showMessageWithCustomDuration(message, durationMillis, null, null, style)
+        } else {
+            snackbarManager.showMessage(message, duration, null, null, style)
+        }
     }
     
     /**
@@ -133,18 +163,25 @@ object SnapNotify {
      * @param actionLabel The label for the action button
      * @param onAction The action to execute when the action button is pressed
      * @param duration How long the snackbar should be displayed
+     * @param durationMillis Custom duration in milliseconds. If provided, overrides duration parameter.
      */
     fun showSuccess(
         message: String,
         actionLabel: String,
         onAction: () -> Unit,
-        duration: SnackbarDuration = SnackbarDuration.Short
+        duration: SnackbarDuration = SnackbarDuration.Short,
+        durationMillis: Long? = null
     ) {
-        snackbarManager.showMessage(message, duration, actionLabel, onAction, SnackbarStyle(
+        val style = SnackbarStyle(
             containerColor = androidx.compose.ui.graphics.Color(0xFF2E7D32),
             contentColor = androidx.compose.ui.graphics.Color.White,
             actionColor = androidx.compose.ui.graphics.Color(0xFF81C784)
-        ))
+        )
+        if (durationMillis != null) {
+            snackbarManager.showMessageWithCustomDuration(message, durationMillis, actionLabel, onAction, style)
+        } else {
+            snackbarManager.showMessage(message, duration, actionLabel, onAction, style)
+        }
     }
     
     /**
@@ -152,16 +189,23 @@ object SnapNotify {
      * 
      * @param message The text to display
      * @param duration How long the snackbar should be displayed
+     * @param durationMillis Custom duration in milliseconds. If provided, overrides duration parameter.
      */
     fun showError(
         message: String,
-        duration: SnackbarDuration = SnackbarDuration.Short
+        duration: SnackbarDuration = SnackbarDuration.Short,
+        durationMillis: Long? = null
     ) {
-        snackbarManager.showMessage(message, duration, null, null, SnackbarStyle(
+        val style = SnackbarStyle(
             containerColor = androidx.compose.ui.graphics.Color(0xFFD32F2F),
             contentColor = androidx.compose.ui.graphics.Color.White,
             actionColor = androidx.compose.ui.graphics.Color(0xFFEF5350)
-        ))
+        )
+        if (durationMillis != null) {
+            snackbarManager.showMessageWithCustomDuration(message, durationMillis, null, null, style)
+        } else {
+            snackbarManager.showMessage(message, duration, null, null, style)
+        }
     }
     
     /**
@@ -171,18 +215,25 @@ object SnapNotify {
      * @param actionLabel The label for the action button
      * @param onAction The action to execute when the action button is pressed
      * @param duration How long the snackbar should be displayed
+     * @param durationMillis Custom duration in milliseconds. If provided, overrides duration parameter.
      */
     fun showError(
         message: String,
         actionLabel: String,
         onAction: () -> Unit,
-        duration: SnackbarDuration = SnackbarDuration.Short
+        duration: SnackbarDuration = SnackbarDuration.Short,
+        durationMillis: Long? = null
     ) {
-        snackbarManager.showMessage(message, duration, actionLabel, onAction, SnackbarStyle(
-            containerColor = androidx.compose.ui.graphics.Color(0xFFD32F2F),
-            contentColor = androidx.compose.ui.graphics.Color.White,
-            actionColor = androidx.compose.ui.graphics.Color(0xFFEF5350)
-        ))
+        val style = SnackbarStyle(
+            containerColor = Color(0xFFD32F2F),
+            contentColor = Color.White,
+            actionColor = Color(0xFFEF5350)
+        )
+        if (durationMillis != null) {
+            snackbarManager.showMessageWithCustomDuration(message, durationMillis, actionLabel, onAction, style)
+        } else {
+            snackbarManager.showMessage(message, duration, actionLabel, onAction, style)
+        }
     }
     
     /**
@@ -190,16 +241,23 @@ object SnapNotify {
      * 
      * @param message The text to display
      * @param duration How long the snackbar should be displayed
+     * @param durationMillis Custom duration in milliseconds. If provided, overrides duration parameter.
      */
     fun showWarning(
         message: String,
-        duration: SnackbarDuration = SnackbarDuration.Short
+        duration: SnackbarDuration = SnackbarDuration.Short,
+        durationMillis: Long? = null
     ) {
-        snackbarManager.showMessage(message, duration, null, null, SnackbarStyle(
+        val style = SnackbarStyle(
             containerColor = androidx.compose.ui.graphics.Color(0xFFE65100),
             contentColor = androidx.compose.ui.graphics.Color.White,
             actionColor = androidx.compose.ui.graphics.Color(0xFFFFB74D)
-        ))
+        )
+        if (durationMillis != null) {
+            snackbarManager.showMessageWithCustomDuration(message, durationMillis, null, null, style)
+        } else {
+            snackbarManager.showMessage(message, duration, null, null, style)
+        }
     }
     
     /**
@@ -209,18 +267,25 @@ object SnapNotify {
      * @param actionLabel The label for the action button
      * @param onAction The action to execute when the action button is pressed
      * @param duration How long the snackbar should be displayed
+     * @param durationMillis Custom duration in milliseconds. If provided, overrides duration parameter.
      */
     fun showWarning(
         message: String,
         actionLabel: String,
         onAction: () -> Unit,
-        duration: SnackbarDuration = SnackbarDuration.Short
+        duration: SnackbarDuration = SnackbarDuration.Short,
+        durationMillis: Long? = null
     ) {
-        snackbarManager.showMessage(message, duration, actionLabel, onAction, SnackbarStyle(
+        val style = SnackbarStyle(
             containerColor = androidx.compose.ui.graphics.Color(0xFFE65100),
             contentColor = androidx.compose.ui.graphics.Color.White,
             actionColor = androidx.compose.ui.graphics.Color(0xFFFFB74D)
-        ))
+        )
+        if (durationMillis != null) {
+            snackbarManager.showMessageWithCustomDuration(message, durationMillis, actionLabel, onAction, style)
+        } else {
+            snackbarManager.showMessage(message, duration, actionLabel, onAction, style)
+        }
     }
     
     /**
@@ -228,16 +293,23 @@ object SnapNotify {
      * 
      * @param message The text to display
      * @param duration How long the snackbar should be displayed
+     * @param durationMillis Custom duration in milliseconds. If provided, overrides duration parameter.
      */
     fun showInfo(
         message: String,
-        duration: SnackbarDuration = SnackbarDuration.Short
+        duration: SnackbarDuration = SnackbarDuration.Short,
+        durationMillis: Long? = null
     ) {
-        snackbarManager.showMessage(message, duration, null, null, SnackbarStyle(
+        val style = SnackbarStyle(
             containerColor = androidx.compose.ui.graphics.Color(0xFF1976D2),
             contentColor = androidx.compose.ui.graphics.Color.White,
             actionColor = androidx.compose.ui.graphics.Color(0xFF42A5F5)
-        ))
+        )
+        if (durationMillis != null) {
+            snackbarManager.showMessageWithCustomDuration(message, durationMillis, null, null, style)
+        } else {
+            snackbarManager.showMessage(message, duration, null, null, style)
+        }
     }
     
     /**
@@ -247,18 +319,25 @@ object SnapNotify {
      * @param actionLabel The label for the action button
      * @param onAction The action to execute when the action button is pressed
      * @param duration How long the snackbar should be displayed
+     * @param durationMillis Custom duration in milliseconds. If provided, overrides duration parameter.
      */
     fun showInfo(
         message: String,
         actionLabel: String,
         onAction: () -> Unit,
-        duration: SnackbarDuration = SnackbarDuration.Short
+        duration: SnackbarDuration = SnackbarDuration.Short,
+        durationMillis: Long? = null
     ) {
-        snackbarManager.showMessage(message, duration, actionLabel, onAction, SnackbarStyle(
+        val style = SnackbarStyle(
             containerColor = androidx.compose.ui.graphics.Color(0xFF1976D2),
             contentColor = androidx.compose.ui.graphics.Color.White,
             actionColor = androidx.compose.ui.graphics.Color(0xFF42A5F5)
-        ))
+        )
+        if (durationMillis != null) {
+            snackbarManager.showMessageWithCustomDuration(message, durationMillis, actionLabel, onAction, style)
+        } else {
+            snackbarManager.showMessage(message, duration, actionLabel, onAction, style)
+        }
     }
     
     /**

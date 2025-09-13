@@ -2,6 +2,7 @@ package com.vamsi.snapnotify.core
 
 import androidx.compose.material3.SnackbarDuration
 import com.vamsi.snapnotify.SnackbarStyle
+import com.vamsi.snapnotify.SnackbarDurationWrapper
 import java.util.UUID
 
 /**
@@ -20,5 +21,12 @@ internal data class SnackbarMessage(
     val duration: SnackbarDuration = SnackbarDuration.Short,
     val actionLabel: String? = null,
     val onAction: (() -> Unit)? = null,
-    val style: SnackbarStyle? = null
-)
+    val style: SnackbarStyle? = null,
+    val customDuration: SnackbarDurationWrapper? = null,
+) {
+    /**
+     * Returns the effective duration wrapper, preferring customDuration if available.
+     */
+    val effectiveDuration: SnackbarDurationWrapper
+        get() = customDuration ?: SnackbarDurationWrapper.fromStandard(duration)
+}

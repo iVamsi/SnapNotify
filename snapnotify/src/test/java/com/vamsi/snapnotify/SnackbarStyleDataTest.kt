@@ -17,7 +17,7 @@ class SnackbarStyleDataTest {
     @Test
     fun `SnackbarStyle default constructor creates correct instance`() {
         val style = SnackbarStyle()
-        
+
         assertEquals(Color.Unspecified, style.containerColor)
         assertEquals(Color.Unspecified, style.contentColor)
         assertEquals(Color.Unspecified, style.actionColor)
@@ -36,7 +36,7 @@ class SnackbarStyleDataTest {
         val elevation = 8.dp
         val messageStyle = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Normal)
         val actionStyle = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold)
-        
+
         val style = SnackbarStyle(
             containerColor = containerColor,
             contentColor = contentColor,
@@ -46,7 +46,7 @@ class SnackbarStyleDataTest {
             messageTextStyle = messageStyle,
             actionTextStyle = actionStyle
         )
-        
+
         assertEquals(containerColor, style.containerColor)
         assertEquals(contentColor, style.contentColor)
         assertEquals(actionColor, style.actionColor)
@@ -63,19 +63,19 @@ class SnackbarStyleDataTest {
             contentColor = Color.White,
             actionColor = Color.Blue
         )
-        
+
         val style2 = SnackbarStyle(
             containerColor = Color.Red,
             contentColor = Color.White,
             actionColor = Color.Blue
         )
-        
+
         val style3 = SnackbarStyle(
             containerColor = Color.Green,
             contentColor = Color.White,
             actionColor = Color.Blue
         )
-        
+
         assertEquals(style1, style2)
         assertNotEquals(style1, style3)
     }
@@ -88,11 +88,11 @@ class SnackbarStyleDataTest {
             actionColor = Color.Blue,
             elevation = 4.dp
         )
-        
+
         val copiedStyle = originalStyle.copy(
             containerColor = Color.Green
         )
-        
+
         assertEquals(Color.Green, copiedStyle.containerColor)
         assertEquals(Color.White, copiedStyle.contentColor) // Should remain the same
         assertEquals(Color.Blue, copiedStyle.actionColor) // Should remain the same
@@ -105,9 +105,9 @@ class SnackbarStyleDataTest {
             containerColor = Color.Red,
             contentColor = Color.White
         )
-        
+
         val stringRepresentation = style.toString()
-        
+
         assertTrue(stringRepresentation.contains("SnackbarStyle"))
         assertTrue(stringRepresentation.contains("containerColor"))
         assertTrue(stringRepresentation.contains("contentColor"))
@@ -119,12 +119,12 @@ class SnackbarStyleDataTest {
             containerColor = Color.Red,
             contentColor = Color.White
         )
-        
+
         val style2 = SnackbarStyle(
             containerColor = Color.Red,
             contentColor = Color.White
         )
-        
+
         assertEquals(style1.hashCode(), style2.hashCode())
     }
 
@@ -140,7 +140,7 @@ class SnackbarStyleDataTest {
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold
         )
-        
+
         val style = SnackbarStyle(
             containerColor = Color(0xFF6200EE),
             contentColor = Color.White,
@@ -150,7 +150,7 @@ class SnackbarStyleDataTest {
             messageTextStyle = messageStyle,
             actionTextStyle = actionStyle
         )
-        
+
         assertEquals(Color(0xFF6200EE), style.containerColor)
         assertEquals(Color.White, style.contentColor)
         assertEquals(Color(0xFFBB86FC), style.actionColor)
@@ -166,7 +166,7 @@ class SnackbarStyleDataTest {
             containerColor = Color.Magenta,
             actionColor = Color.Cyan
         )
-        
+
         assertEquals(Color.Magenta, style.containerColor)
         assertEquals(Color.Unspecified, style.contentColor) // Default
         assertEquals(Color.Cyan, style.actionColor)
@@ -180,10 +180,10 @@ class SnackbarStyleDataTest {
             containerColor = Color.Red,
             contentColor = Color.White
         )
-        
+
         // Data class is immutable - creating new instances through copy
         val modifiedStyle = style.copy(containerColor = Color.Blue)
-        
+
         assertEquals(Color.Red, style.containerColor) // Original unchanged
         assertEquals(Color.Blue, modifiedStyle.containerColor) // New instance changed
     }

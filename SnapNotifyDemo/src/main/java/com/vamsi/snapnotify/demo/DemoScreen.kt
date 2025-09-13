@@ -36,7 +36,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 @Composable
 fun DemoScreen() {
     var counter by remember { mutableIntStateOf(0) }
-    
+
     // Pre-define styles to avoid @Composable issues in onClick
     val purpleStyle = SnackbarStyle(
         containerColor = Color(0xFF6A1B9A),
@@ -45,7 +45,7 @@ fun DemoScreen() {
         shape = RoundedCornerShape(16.dp),
         elevation = 12.dp
     )
-    
+
     val brandStyle = SnackbarStyle(
         containerColor = Color(0xFF2E7D32),
         contentColor = Color.White,
@@ -54,7 +54,7 @@ fun DemoScreen() {
         messageTextStyle = MaterialTheme.typography.bodyLarge,
         actionTextStyle = MaterialTheme.typography.labelLarge
     )
-    
+
     val darkStyle = SnackbarStyle(
         containerColor = Color(0xFF212121),
         contentColor = Color(0xFFE0E0E0),
@@ -64,7 +64,7 @@ fun DemoScreen() {
 
     // Scroll behavior for collapsible top bar
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
-    
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
@@ -87,7 +87,7 @@ fun DemoScreen() {
             verticalArrangement = Arrangement.Center
         ) {
             Text("Tap buttons to see SnapNotify in action!")
-            
+
             Spacer(modifier = Modifier.height(32.dp))
 
             Button(onClick = {
@@ -132,9 +132,9 @@ fun DemoScreen() {
             }) {
                 Text("Test Message Queue")
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Button(onClick = {
                 SnapNotify.clearAll()
             }) {
@@ -153,42 +153,42 @@ fun DemoScreen() {
             }) {
                 Text("Show Indefinite Message")
             }
-            
+
             Spacer(modifier = Modifier.height(32.dp))
-            
+
             // Styling Demo Buttons
             Button(onClick = {
                 SnapNotify.showSuccess("Operation completed successfully! ${++counter}")
             }) {
                 Text("Show Success Message")
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Button(onClick = {
                 SnapNotify.showError("Something went wrong! ${++counter}")
             }) {
                 Text("Show Error Message")
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Button(onClick = {
                 SnapNotify.showWarning("Please check your input! ${++counter}")
             }) {
                 Text("Show Warning Message")
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Button(onClick = {
                 SnapNotify.showInfo("Here's some information! ${++counter}")
             }) {
                 Text("Show Info Message")
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Button(onClick = {
                 SnapNotify.showSuccess(
                     message = "File saved successfully!",
@@ -200,18 +200,18 @@ fun DemoScreen() {
             }) {
                 Text("Success with Action")
             }
-            
+
             Spacer(modifier = Modifier.height(32.dp))
-            
+
             // Custom Styling Demo Buttons
             Button(onClick = {
                 SnapNotify.showStyled("Custom purple theme! ${++counter}", purpleStyle)
             }) {
                 Text("Custom Purple Style")
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Button(onClick = {
                 SnapNotify.showStyled(
                     message = "Custom styled with action!",
@@ -224,13 +224,65 @@ fun DemoScreen() {
             }) {
                 Text("Custom Style with Action")
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Button(onClick = {
                 SnapNotify.showStyled("Dark theme message! ${++counter}", darkStyle)
             }) {
                 Text("Dark Custom Style")
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Text("Custom Duration Examples")
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Custom Duration Demo Buttons
+            Button(onClick = {
+                SnapNotify.show("This message shows for 7 seconds", durationMillis = 7000)
+            }) {
+                Text("7 Second Message")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(onClick = {
+                SnapNotify.showError(
+                    message = "Network error - retrying in 15s",
+                    actionLabel = "Retry Now",
+                    onAction = {
+                        SnapNotify.show("Retrying network request...")
+                    },
+                    durationMillis = 15000
+                )
+            }) {
+                Text("15 Second Error")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(onClick = {
+                SnapNotify.showSuccess("Quick success notification!", durationMillis = 2000)
+            }) {
+                Text("2 Second Success")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(onClick = {
+                SnapNotify.showStyled(
+                    message = "Custom styled with 10s duration!",
+                    style = purpleStyle,
+                    actionLabel = "Got it!",
+                    onAction = {
+                        SnapNotify.show("Custom action with timing!")
+                    },
+                    durationMillis = 10000
+                )
+            }) {
+                Text("10s Custom Style")
             }
         }
     }
