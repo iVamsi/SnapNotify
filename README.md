@@ -1,5 +1,6 @@
 # SnapNotify
 
+[![Android Weekly](https://androidweekly.net/issues/issue-692/badge)](https://androidweekly.net/issues/issue-692)
 [![Kotlin](https://img.shields.io/badge/Kotlin-1.9.0+-purple.svg)](https://kotlinlang.org)
 [![Compose](https://img.shields.io/badge/Compose-1.5.0+-blue.svg)](https://developer.android.com/jetpack/compose)
 [![Android](https://img.shields.io/badge/Android-API%2024+-green.svg)](https://android-arsenal.com/api?level=24)
