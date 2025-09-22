@@ -34,7 +34,9 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DemoScreen() {
+fun DemoScreen(
+    modifier: Modifier = Modifier
+) {
     var counter by remember { mutableIntStateOf(0) }
 
     // Pre-define styles to avoid @Composable issues in onClick
@@ -66,15 +68,14 @@ fun DemoScreen() {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
                 title = { Text("SnapNotify Demo") },
                 scrollBehavior = scrollBehavior,
                 windowInsets = WindowInsets(0.dp, 0.dp)
             )
-        },
-        contentWindowInsets = WindowInsets(0.dp, 0.dp, 0.dp, 0.dp),
+        }
     ) { paddingValues ->
         Column(
             modifier = Modifier

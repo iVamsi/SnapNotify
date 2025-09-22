@@ -1,29 +1,26 @@
 package com.vamsi.snapnotify
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Snackbar
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
 
 /**
@@ -145,26 +142,22 @@ fun SnapNotifyProvider(
     }
 
     CompositionLocalProvider(LocalSnapNotifyProvider provides true) {
-        Scaffold(
-            modifier = modifier.fillMaxSize(),
-            snackbarHost = {
-                SnackbarHost(
-                    hostState = snackbarHostState
-                ) { snackbarData ->
-                    val messageStyle = currentMessage.value?.style ?: snackbarStyle
-                    StyledSnackbar(
-                        snackbarData = snackbarData,
-                        style = messageStyle
-                    )
-                }
-            }
-        ) { paddingValues ->
-            Box(
+        Box(modifier = modifier.fillMaxSize()) {
+            // Content renders edge-to-edge without any padding
+            content()
+
+            // Snackbar with proper navigation bar padding only
+            SnackbarHost(
+                hostState = snackbarHostState,
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            ) {
-                content()
+                    .align(Alignment.BottomCenter)
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+            ) { snackbarData ->
+                val messageStyle = currentMessage.value?.style ?: snackbarStyle
+                StyledSnackbar(
+                    snackbarData = snackbarData,
+                    style = messageStyle
+                )
             }
         }
     }
