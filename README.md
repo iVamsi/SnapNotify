@@ -5,7 +5,7 @@
 [![Compose](https://img.shields.io/badge/Compose-1.5.0+-blue.svg)](https://developer.android.com/jetpack/compose)
 [![Android](https://img.shields.io/badge/Android-API%2024+-green.svg)](https://android-arsenal.com/api?level=24)
 [![License](https://img.shields.io/badge/License-Apache%202.0-orange.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Maven Central](https://img.shields.io/badge/Maven%20Central-1.0.3-red.svg)](https://central.sonatype.com/artifact/io.github.ivamsi/snapnotify/1.0.3)
+[![Maven Central](https://img.shields.io/badge/Maven%20Central-1.0.4-red.svg)](https://central.sonatype.com/artifact/io.github.ivamsi/snapnotify/1.0.4)
 [![Tests](https://img.shields.io/badge/Tests-65%2B%20passing-brightgreen.svg)](#-testing)
 [![Coverage](https://img.shields.io/badge/Coverage-100%25%20Public%20API-brightgreen.svg)](#-testing)
 
@@ -76,7 +76,7 @@ Add to your `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("io.github.ivamsi:snapnotify:1.0.3")
+    implementation("io.github.ivamsi:snapnotify:1.0.4")
 }
 ```
 
