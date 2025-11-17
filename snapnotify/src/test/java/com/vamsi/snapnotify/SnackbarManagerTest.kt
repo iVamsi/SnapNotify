@@ -4,8 +4,11 @@ import androidx.compose.material3.SnackbarDuration
 import com.vamsi.snapnotify.core.SnackbarManager
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.*
+import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
@@ -16,12 +19,19 @@ import org.junit.Test
 class SnackbarManagerTest {
 
     private lateinit var snackbarManager: SnackbarManager
+    private val testDispatcher = UnconfinedTestDispatcher()
 
     @Before
-    fun setup() {
+    fun setup() = runBlocking {
         snackbarManager = SnackbarManager.getInstance()
-        // Clear any existing messages from previous tests
-        snackbarManager.clearAllMessages()
+        snackbarManager.updateConfig(SnapNotifyConfig().withDispatcher(testDispatcher))
+        snackbarManager.clearAll()
+    }
+
+    @After
+    fun tearDown() = runBlocking {
+        snackbarManager.updateConfig(SnapNotifyConfig())
+        snackbarManager.clearAll()
     }
 
     @Test
@@ -30,10 +40,9 @@ class SnackbarManagerTest {
 
         snackbarManager.show(message)
 
-        val currentMessage = snackbarManager.messages.first()
-        assertNotNull(currentMessage)
-        assertEquals(message, currentMessage?.text)
-        assertEquals(SnackbarDuration.Short, currentMessage?.duration)
+        val currentMessage = snackbarManager.awaitMessage()
+        assertEquals(message, currentMessage.text)
+        assertEquals(SnackbarDuration.Short, currentMessage.duration)
     }
 
     @Test
@@ -45,11 +54,10 @@ class SnackbarManagerTest {
 
         snackbarManager.show(message, SnackbarDuration.Long, actionLabel, onAction)
 
-        val currentMessage = snackbarManager.messages.first()
-        assertNotNull(currentMessage)
-        assertEquals(message, currentMessage?.text)
-        assertEquals(SnackbarDuration.Long, currentMessage?.duration)
-        assertEquals(actionLabel, currentMessage?.actionLabel)
+        val currentMessage = snackbarManager.awaitMessage()
+        assertEquals(message, currentMessage.text)
+        assertEquals(SnackbarDuration.Long, currentMessage.duration)
+        assertEquals(actionLabel, currentMessage.actionLabel)
 
         currentMessage?.onAction?.invoke()
         assertTrue(actionCalled)
@@ -61,20 +69,19 @@ class SnackbarManagerTest {
 
         snackbarManager.showMessage(message, SnackbarDuration.Indefinite)
 
-        val currentMessage = snackbarManager.messages.first()
-        assertNotNull(currentMessage)
-        assertEquals(message, currentMessage?.text)
-        assertEquals(SnackbarDuration.Indefinite, currentMessage?.duration)
+        val currentMessage = snackbarManager.awaitMessage()
+        assertEquals(message, currentMessage.text)
+        assertEquals(SnackbarDuration.Indefinite, currentMessage.duration)
     }
 
     @Test
     fun `dismissCurrent clears current message`() = runTest {
         snackbarManager.show("Test message")
-        assertNotNull(snackbarManager.messages.first())
+        snackbarManager.awaitMessage()
 
         snackbarManager.dismissCurrent()
 
-        assertNull(snackbarManager.messages.first())
+        assertNull(snackbarManager.awaitNullMessage())
     }
 
     @Test
@@ -86,13 +93,13 @@ class SnackbarManagerTest {
         snackbarManager.show("Second message")
 
         // Verify first message is displayed
-        val firstMessage = snackbarManager.messages.first()
-        assertEquals("First message", firstMessage?.text)
+        val firstMessage = snackbarManager.awaitMessage()
+        assertEquals("First message", firstMessage.text)
 
         // Dismiss current and verify second message is now displayed
         snackbarManager.dismissCurrent()
-        val secondMessage = snackbarManager.messages.first()
-        assertEquals("Second message", secondMessage?.text)
+        val secondMessage = snackbarManager.awaitMessage()
+        assertEquals("Second message", secondMessage.text)
     }
 
     @Test
@@ -102,7 +109,7 @@ class SnackbarManagerTest {
 
         snackbarManager.clearAll()
 
-        assertNull(snackbarManager.messages.first())
+        assertNull(snackbarManager.awaitNullMessage())
     }
 
     @Test
@@ -113,29 +120,29 @@ class SnackbarManagerTest {
         snackbarManager.show("Message 3")
 
         // First message should be displayed
-        assertEquals("Message 1", snackbarManager.messages.first()?.text)
+        assertEquals("Message 1", snackbarManager.awaitMessage().text)
 
         // Dismiss and check next
         snackbarManager.dismissCurrent()
-        assertEquals("Message 2", snackbarManager.messages.first()?.text)
+        assertEquals("Message 2", snackbarManager.awaitMessage().text)
 
         // Dismiss and check next
         snackbarManager.dismissCurrent()
-        assertEquals("Message 3", snackbarManager.messages.first()?.text)
+        assertEquals("Message 3", snackbarManager.awaitMessage().text)
 
         // Dismiss last message
         snackbarManager.dismissCurrent()
-        assertNull(snackbarManager.messages.first())
+        assertNull(snackbarManager.awaitNullMessage())
     }
 
     @Test
     fun `message has unique ID`() = runTest {
         snackbarManager.show("Message 1")
-        val firstMessage = snackbarManager.messages.first()
+        val firstMessage = snackbarManager.awaitMessage()
 
         snackbarManager.dismissCurrent()
         snackbarManager.show("Message 2")
-        val secondMessage = snackbarManager.messages.first()
+        val secondMessage = snackbarManager.awaitMessage()
 
         assertNotNull(firstMessage?.id)
         assertNotNull(secondMessage?.id)
@@ -148,12 +155,43 @@ class SnackbarManagerTest {
         snackbarManager.show("Second message")
 
         // Verify messages are present
-        assertNotNull(snackbarManager.messages.first())
+        snackbarManager.awaitMessage()
 
         // Clear all messages using non-suspending method
-        snackbarManager.clearAllMessages()
+        snackbarManager.clearAllMessages()?.join()
 
         // Verify all messages are cleared
-        assertNull(snackbarManager.messages.first())
+        assertNull(snackbarManager.awaitNullMessage())
+    }
+
+    @Test
+    fun `queue drops oldest message when exceeding limit`() = runTest {
+        snackbarManager.updateConfig(SnapNotifyConfig(maxQueueSize = 1))
+
+        snackbarManager.show("Active")
+        snackbarManager.show("Queued")
+        snackbarManager.show("Overflow") // Should drop "Queued"
+
+        snackbarManager.dismissCurrent()
+        val nextMessage = snackbarManager.awaitMessage()
+
+        assertEquals("Overflow", nextMessage.text)
+    }
+
+    @Test
+    fun `onMessageDropped callback is invoked`() = runTest {
+        val dropped = mutableListOf<String>()
+        snackbarManager.updateConfig(
+            SnapNotifyConfig(
+                maxQueueSize = 1,
+                onMessageDropped = { dropped += it }
+            )
+        )
+
+        snackbarManager.show("Active")
+        snackbarManager.show("Queued")
+        snackbarManager.show("Overflow")
+
+        assertEquals(listOf("Queued"), dropped)
     }
 }

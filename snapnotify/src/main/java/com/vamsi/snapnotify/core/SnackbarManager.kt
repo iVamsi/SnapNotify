@@ -1,12 +1,19 @@
 package com.vamsi.snapnotify.core
 
 import androidx.compose.material3.SnackbarDuration
-import com.vamsi.snapnotify.SnackbarStyle
 import com.vamsi.snapnotify.SnackbarDurationWrapper
+import com.vamsi.snapnotify.SnackbarStyle
+import com.vamsi.snapnotify.SnapNotifyConfig
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -31,9 +38,27 @@ internal class SnackbarManager private constructor() {
         }
     }
 
+    fun updateConfig(newConfig: SnapNotifyConfig) {
+        require(newConfig.maxQueueSize > 0) { "maxQueueSize must be greater than 0" }
+        // Cancel the old scope and create a new one with the new dispatcher
+        queueScope?.cancel()
+        config = newConfig
+        queueScope = CoroutineScope(
+            SupervisorJob() + config.dispatcher + CoroutineName("SnapNotifySnackbarQueue")
+        )
+    }
+
     private val messageQueue = ConcurrentLinkedQueue<SnackbarMessage>()
     private val _messages = MutableStateFlow<SnackbarMessage?>(null)
     private val mutex = Mutex()
+
+    @Volatile
+    private var config: SnapNotifyConfig = SnapNotifyConfig()
+
+    @Volatile
+    private var queueScope: CoroutineScope? = CoroutineScope(
+        SupervisorJob() + config.dispatcher + CoroutineName("SnapNotifySnackbarQueue")
+    )
 
     /**
      * StateFlow of messages that need to be displayed.
@@ -95,15 +120,7 @@ internal class SnackbarManager private constructor() {
             style = style
         )
 
-        mutex.withLock {
-            if (_messages.value == null) {
-                // No message currently displayed, show immediately
-                _messages.value = snackbarMessage
-            } else {
-                // Queue the message for later display
-                messageQueue.offer(snackbarMessage)
-            }
-        }
+        enqueueMessage(snackbarMessage)
     }
 
     /**
@@ -161,18 +178,8 @@ internal class SnackbarManager private constructor() {
             style = style
         )
 
-        // Use runBlocking with mutex for thread safety
-        // This ensures atomic operations even from background threads
-        runBlocking {
-            mutex.withLock {
-                if (_messages.value == null) {
-                    // No message currently displayed, show immediately
-                    _messages.value = snackbarMessage
-                } else {
-                    // Queue the message for later display
-                    messageQueue.offer(snackbarMessage)
-                }
-            }
+        queueScope?.launch {
+            enqueueMessage(snackbarMessage)
         }
     }
 
@@ -201,8 +208,8 @@ internal class SnackbarManager private constructor() {
      * Non-suspending version of clearAll for calling from anywhere without coroutine scope.
      * This method is thread-safe and can be called from any thread.
      */
-    fun clearAllMessages() {
-        runBlocking {
+    fun clearAllMessages(): Job? {
+        return queueScope?.launch {
             mutex.withLock {
                 messageQueue.clear()
                 _messages.value = null
@@ -268,13 +275,7 @@ internal class SnackbarManager private constructor() {
             customDuration = customDuration
         )
 
-        mutex.withLock {
-            if (_messages.value == null) {
-                _messages.value = snackbarMessage
-            } else {
-                messageQueue.offer(snackbarMessage)
-            }
-        }
+        enqueueMessage(snackbarMessage)
     }
 
     /**
@@ -334,14 +335,33 @@ internal class SnackbarManager private constructor() {
             customDuration = customDuration
         )
 
-        runBlocking {
-            mutex.withLock {
-                if (_messages.value == null) {
-                    _messages.value = snackbarMessage
-                } else {
-                    messageQueue.offer(snackbarMessage)
-                }
+        queueScope?.launch {
+            enqueueMessage(snackbarMessage)
+        }
+    }
+
+    private suspend fun enqueueMessage(snackbarMessage: SnackbarMessage) {
+        var droppedMessageText: String? = null
+        var dropCallback: ((String) -> Unit)? = null
+
+        mutex.withLock {
+            if (_messages.value == null) {
+                _messages.value = snackbarMessage
+                return
             }
+
+            val configSnapshot = config
+            dropCallback = configSnapshot.onMessageDropped
+
+            if (messageQueue.size >= configSnapshot.maxQueueSize) {
+                droppedMessageText = messageQueue.poll()?.text ?: snackbarMessage.text
+            }
+
+            messageQueue.offer(snackbarMessage)
+        }
+
+        droppedMessageText?.let {
+            dropCallback?.invoke(it)
         }
     }
 }

@@ -21,9 +21,7 @@ class MainActivity : ComponentActivity() {
             SnapNotifyTheme {
                 SnapNotifyProvider {
                     DemoScreen(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp)
+                        modifier = Modifier.fillMaxSize()
                     )
                 }
             }

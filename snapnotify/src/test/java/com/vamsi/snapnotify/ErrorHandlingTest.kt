@@ -2,11 +2,33 @@ package com.vamsi.snapnotify
 
 import androidx.compose.material3.SnackbarDuration
 import com.vamsi.snapnotify.core.SnackbarManager
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
-import org.junit.Test
+import org.junit.After
 import org.junit.Assert.*
+import org.junit.Before
+import org.junit.Test
 
+@ExperimentalCoroutinesApi
 class ErrorHandlingTest {
+
+    private val testDispatcher = UnconfinedTestDispatcher()
+
+    @Before
+    fun setup() = runBlocking {
+        val snackbarManager = SnackbarManager.getInstance()
+        snackbarManager.updateConfig(SnapNotifyConfig().withDispatcher(testDispatcher))
+        snackbarManager.clearAll()
+    }
+
+    @After
+    fun tearDown() = runBlocking {
+        val snackbarManager = SnackbarManager.getInstance()
+        snackbarManager.updateConfig(SnapNotifyConfig())
+        snackbarManager.clearAll()
+    }
 
     @Test
     fun testInvalidDurationHandling() {
@@ -37,11 +59,10 @@ class ErrorHandlingTest {
         var nullAction: (() -> Unit)? = null
         SnapNotify.show("Test", "Action", { nullAction?.invoke() })
 
-        val message = snackbarManager.messages.value
-        assertNotNull(message)
-        assertEquals("Test", message?.text)
-        assertEquals("Action", message?.actionLabel)
-        assertNotNull(message?.onAction)
+        val message = snackbarManager.awaitMessage()
+        assertEquals("Test", message.text)
+        assertEquals("Action", message.actionLabel)
+        assertNotNull(message.onAction)
     }
 
     @Test
@@ -51,18 +72,16 @@ class ErrorHandlingTest {
 
         // Test empty message
         SnapNotify.show("")
-        val emptyMessage = snackbarManager.messages.value
-        assertNotNull(emptyMessage)
-        assertEquals("", emptyMessage?.text)
+        val emptyMessage = snackbarManager.awaitMessage()
+        assertEquals("", emptyMessage.text)
 
         snackbarManager.clearAll()
 
         // Test empty action label
         SnapNotify.show("Message", "", {})
-        val emptyActionMessage = snackbarManager.messages.value
-        assertNotNull(emptyActionMessage)
-        assertEquals("Message", emptyActionMessage?.text)
-        assertEquals("", emptyActionMessage?.actionLabel)
+        val emptyActionMessage = snackbarManager.awaitMessage()
+        assertEquals("Message", emptyActionMessage.text)
+        assertEquals("", emptyActionMessage.actionLabel)
     }
 
     @Test
@@ -100,10 +119,9 @@ class ErrorHandlingTest {
         val longMessage = "A".repeat(1000) // Very long message
         SnapNotify.show(longMessage, durationMillis = 1000)
 
-        val message = snackbarManager.messages.value
-        assertNotNull(message)
-        assertEquals(longMessage, message?.text)
-        assertEquals(1000L, message?.effectiveDuration?.getMilliseconds())
+        val message = snackbarManager.awaitMessage()
+        assertEquals(longMessage, message.text)
+        assertEquals(1000L, message.effectiveDuration.getMilliseconds())
     }
 
     @Test
@@ -117,10 +135,9 @@ class ErrorHandlingTest {
         }
 
         // Should have first message active and others queued
-        val currentMessage = snackbarManager.messages.value
-        assertNotNull(currentMessage)
-        assertEquals("Message 0", currentMessage?.text)
-        assertEquals(100L, currentMessage?.effectiveDuration?.getMilliseconds())
+        val currentMessage = snackbarManager.awaitMessage()
+        assertEquals("Message 0", currentMessage.text)
+        assertEquals(100L, currentMessage.effectiveDuration.getMilliseconds())
     }
 
     @Test
@@ -141,10 +158,13 @@ class ErrorHandlingTest {
             snackbarManager.clearAll()
             testCase()
 
-            val message = snackbarManager.messages.value
-            assertNotNull("Message should not be null for test case $index", message)
-            assertEquals(expectedDurations[index], message?.effectiveDuration?.getMilliseconds())
-            assertNotNull("Style should not be null for themed message", message?.style)
+            val message = snackbarManager.awaitMessage()
+            assertEquals(
+                "Unexpected duration for test case $index",
+                expectedDurations[index],
+                message.effectiveDuration.getMilliseconds()
+            )
+            assertNotNull("Style should not be null for themed message", message.style)
         }
     }
 
@@ -171,15 +191,14 @@ class ErrorHandlingTest {
             actionCalled = false
             testCase()
 
-            val message = snackbarManager.messages.value
-            assertNotNull("Message should not be null for test case $index", message)
-            assertEquals(expectedLabels[index], message?.actionLabel)
-            assertEquals(expectedDurations[index], message?.effectiveDuration?.getMilliseconds())
-            assertNotNull("Style should not be null for themed message", message?.style)
-            assertNotNull("Action should not be null", message?.onAction)
+            val message = snackbarManager.awaitMessage()
+            assertEquals(expectedLabels[index], message.actionLabel)
+            assertEquals(expectedDurations[index], message.effectiveDuration.getMilliseconds())
+            assertNotNull("Style should not be null for themed message", message.style)
+            assertNotNull("Action should not be null", message.onAction)
 
             // Test action execution
-            message?.onAction?.invoke()
+            message.onAction?.invoke()
             assertTrue("Action should have been called for test case $index", actionCalled)
         }
     }

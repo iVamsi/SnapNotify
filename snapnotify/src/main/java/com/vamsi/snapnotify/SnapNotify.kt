@@ -22,6 +22,26 @@ object SnapNotify {
     private val snackbarManager: SnackbarManager by lazy {
         SnackbarManager.getInstance()
     }
+    private val successStyle = SnackbarStyle(
+        containerColor = Color(0xFF2E7D32),
+        contentColor = Color.White,
+        actionColor = Color(0xFF81C784)
+    )
+    private val errorStyle = SnackbarStyle(
+        containerColor = Color(0xFFD32F2F),
+        contentColor = Color.White,
+        actionColor = Color(0xFFEF5350)
+    )
+    private val warningStyle = SnackbarStyle(
+        containerColor = Color(0xFFE65100),
+        contentColor = Color.White,
+        actionColor = Color(0xFFFFB74D)
+    )
+    private val infoStyle = SnackbarStyle(
+        containerColor = Color(0xFF1976D2),
+        contentColor = Color.White,
+        actionColor = Color(0xFF42A5F5)
+    )
     
     /**
      * Internal method to ensure SnapNotify is ready to use.
@@ -30,6 +50,15 @@ object SnapNotify {
     internal fun initialize() {
         // The lazy initialization of snackbarManager handles setup automatically
         // This method is kept for API compatibility but is now essentially a no-op
+    }
+
+    /**
+     * Configures SnapNotify's internal queue behavior.
+     *
+     * @param config The configuration to apply.
+     */
+    fun configure(config: SnapNotifyConfig) {
+        snackbarManager.updateConfig(config)
     }
     
     /**
@@ -144,15 +173,10 @@ object SnapNotify {
         duration: SnackbarDuration = SnackbarDuration.Short,
         durationMillis: Long? = null
     ) {
-        val style = SnackbarStyle(
-            containerColor = androidx.compose.ui.graphics.Color(0xFF2E7D32),
-            contentColor = androidx.compose.ui.graphics.Color.White,
-            actionColor = androidx.compose.ui.graphics.Color(0xFF81C784)
-        )
         if (durationMillis != null) {
-            snackbarManager.showMessageWithCustomDuration(message, durationMillis, null, null, style)
+            snackbarManager.showMessageWithCustomDuration(message, durationMillis, null, null, successStyle)
         } else {
-            snackbarManager.showMessage(message, duration, null, null, style)
+            snackbarManager.showMessage(message, duration, null, null, successStyle)
         }
     }
     
@@ -172,15 +196,10 @@ object SnapNotify {
         duration: SnackbarDuration = SnackbarDuration.Short,
         durationMillis: Long? = null
     ) {
-        val style = SnackbarStyle(
-            containerColor = androidx.compose.ui.graphics.Color(0xFF2E7D32),
-            contentColor = androidx.compose.ui.graphics.Color.White,
-            actionColor = androidx.compose.ui.graphics.Color(0xFF81C784)
-        )
         if (durationMillis != null) {
-            snackbarManager.showMessageWithCustomDuration(message, durationMillis, actionLabel, onAction, style)
+            snackbarManager.showMessageWithCustomDuration(message, durationMillis, actionLabel, onAction, successStyle)
         } else {
-            snackbarManager.showMessage(message, duration, actionLabel, onAction, style)
+            snackbarManager.showMessage(message, duration, actionLabel, onAction, successStyle)
         }
     }
     
@@ -196,15 +215,10 @@ object SnapNotify {
         duration: SnackbarDuration = SnackbarDuration.Short,
         durationMillis: Long? = null
     ) {
-        val style = SnackbarStyle(
-            containerColor = androidx.compose.ui.graphics.Color(0xFFD32F2F),
-            contentColor = androidx.compose.ui.graphics.Color.White,
-            actionColor = androidx.compose.ui.graphics.Color(0xFFEF5350)
-        )
         if (durationMillis != null) {
-            snackbarManager.showMessageWithCustomDuration(message, durationMillis, null, null, style)
+            snackbarManager.showMessageWithCustomDuration(message, durationMillis, null, null, errorStyle)
         } else {
-            snackbarManager.showMessage(message, duration, null, null, style)
+            snackbarManager.showMessage(message, duration, null, null, errorStyle)
         }
     }
     
@@ -224,15 +238,10 @@ object SnapNotify {
         duration: SnackbarDuration = SnackbarDuration.Short,
         durationMillis: Long? = null
     ) {
-        val style = SnackbarStyle(
-            containerColor = Color(0xFFD32F2F),
-            contentColor = Color.White,
-            actionColor = Color(0xFFEF5350)
-        )
         if (durationMillis != null) {
-            snackbarManager.showMessageWithCustomDuration(message, durationMillis, actionLabel, onAction, style)
+            snackbarManager.showMessageWithCustomDuration(message, durationMillis, actionLabel, onAction, errorStyle)
         } else {
-            snackbarManager.showMessage(message, duration, actionLabel, onAction, style)
+            snackbarManager.showMessage(message, duration, actionLabel, onAction, errorStyle)
         }
     }
     
@@ -248,15 +257,10 @@ object SnapNotify {
         duration: SnackbarDuration = SnackbarDuration.Short,
         durationMillis: Long? = null
     ) {
-        val style = SnackbarStyle(
-            containerColor = androidx.compose.ui.graphics.Color(0xFFE65100),
-            contentColor = androidx.compose.ui.graphics.Color.White,
-            actionColor = androidx.compose.ui.graphics.Color(0xFFFFB74D)
-        )
         if (durationMillis != null) {
-            snackbarManager.showMessageWithCustomDuration(message, durationMillis, null, null, style)
+            snackbarManager.showMessageWithCustomDuration(message, durationMillis, null, null, warningStyle)
         } else {
-            snackbarManager.showMessage(message, duration, null, null, style)
+            snackbarManager.showMessage(message, duration, null, null, warningStyle)
         }
     }
     
@@ -276,15 +280,10 @@ object SnapNotify {
         duration: SnackbarDuration = SnackbarDuration.Short,
         durationMillis: Long? = null
     ) {
-        val style = SnackbarStyle(
-            containerColor = androidx.compose.ui.graphics.Color(0xFFE65100),
-            contentColor = androidx.compose.ui.graphics.Color.White,
-            actionColor = androidx.compose.ui.graphics.Color(0xFFFFB74D)
-        )
         if (durationMillis != null) {
-            snackbarManager.showMessageWithCustomDuration(message, durationMillis, actionLabel, onAction, style)
+            snackbarManager.showMessageWithCustomDuration(message, durationMillis, actionLabel, onAction, warningStyle)
         } else {
-            snackbarManager.showMessage(message, duration, actionLabel, onAction, style)
+            snackbarManager.showMessage(message, duration, actionLabel, onAction, warningStyle)
         }
     }
     
@@ -300,15 +299,10 @@ object SnapNotify {
         duration: SnackbarDuration = SnackbarDuration.Short,
         durationMillis: Long? = null
     ) {
-        val style = SnackbarStyle(
-            containerColor = androidx.compose.ui.graphics.Color(0xFF1976D2),
-            contentColor = androidx.compose.ui.graphics.Color.White,
-            actionColor = androidx.compose.ui.graphics.Color(0xFF42A5F5)
-        )
         if (durationMillis != null) {
-            snackbarManager.showMessageWithCustomDuration(message, durationMillis, null, null, style)
+            snackbarManager.showMessageWithCustomDuration(message, durationMillis, null, null, infoStyle)
         } else {
-            snackbarManager.showMessage(message, duration, null, null, style)
+            snackbarManager.showMessage(message, duration, null, null, infoStyle)
         }
     }
     
@@ -328,15 +322,10 @@ object SnapNotify {
         duration: SnackbarDuration = SnackbarDuration.Short,
         durationMillis: Long? = null
     ) {
-        val style = SnackbarStyle(
-            containerColor = androidx.compose.ui.graphics.Color(0xFF1976D2),
-            contentColor = androidx.compose.ui.graphics.Color.White,
-            actionColor = androidx.compose.ui.graphics.Color(0xFF42A5F5)
-        )
         if (durationMillis != null) {
-            snackbarManager.showMessageWithCustomDuration(message, durationMillis, actionLabel, onAction, style)
+            snackbarManager.showMessageWithCustomDuration(message, durationMillis, actionLabel, onAction, infoStyle)
         } else {
-            snackbarManager.showMessage(message, duration, actionLabel, onAction, style)
+            snackbarManager.showMessage(message, duration, actionLabel, onAction, infoStyle)
         }
     }
     

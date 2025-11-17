@@ -3,9 +3,11 @@ package com.vamsi.snapnotify
 import androidx.compose.material3.SnackbarDuration
 import com.vamsi.snapnotify.core.SnackbarManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.*
@@ -15,14 +17,17 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.concurrent.thread
 
+@ExperimentalCoroutinesApi
 class ThreadSafetyTest {
 
     private lateinit var snackbarManager: SnackbarManager
+    private val testDispatcher = UnconfinedTestDispatcher()
 
     @Before
     fun setUp() {
         snackbarManager = SnackbarManager.getInstance()
         runBlocking {
+            snackbarManager.updateConfig(SnapNotifyConfig().withDispatcher(testDispatcher))
             snackbarManager.clearAll()
         }
     }
@@ -30,6 +35,7 @@ class ThreadSafetyTest {
     @After
     fun tearDown() {
         runBlocking {
+            snackbarManager.updateConfig(SnapNotifyConfig())
             snackbarManager.clearAll()
         }
     }
@@ -61,7 +67,9 @@ class ThreadSafetyTest {
         assertEquals(threadCount, successCount.get())
 
         // Should have exactly one message visible and the rest queued
-        assertNotNull(snackbarManager.messages.value)
+        runBlocking {
+            assertNotNull(snackbarManager.awaitMessage())
+        }
     }
 
     @Test
@@ -79,7 +87,9 @@ class ThreadSafetyTest {
         repeat(threadCount) {
             thread {
                 try {
-                    snackbarManager.clearAllMessages()
+                    runBlocking {
+                        snackbarManager.clearAllMessages()?.join()
+                    }
                     successCount.incrementAndGet()
                 } finally {
                     latch.countDown()
@@ -91,7 +101,9 @@ class ThreadSafetyTest {
         assertEquals(threadCount, successCount.get())
 
         // Should have no messages after clearing
-        assertNull(snackbarManager.messages.value)
+        runBlocking {
+            assertNull(snackbarManager.awaitNullMessage())
+        }
     }
 
     @Test
@@ -115,7 +127,9 @@ class ThreadSafetyTest {
                         1 -> {
                             // Clear messages
                             Thread.sleep(5) // Let some messages accumulate first
-                            snackbarManager.clearAllMessages()
+                            runBlocking {
+                                snackbarManager.clearAllMessages()?.join()
+                            }
                         }
 
                         2 -> {
@@ -160,13 +174,12 @@ class ThreadSafetyTest {
 
         latch.await()
 
-        val currentMessage = snackbarManager.messages.value
-        assertNotNull(currentMessage)
-        assertEquals("Background thread message", currentMessage?.text)
-        assertEquals("Action", currentMessage?.actionLabel)
+        val currentMessage = runBlocking { snackbarManager.awaitMessage() }
+        assertEquals("Background thread message", currentMessage.text)
+        assertEquals("Action", currentMessage.actionLabel)
 
         // Execute the action
-        currentMessage?.onAction?.invoke()
+        currentMessage.onAction?.invoke()
         assertTrue(actionExecuted)
     }
 
@@ -191,10 +204,9 @@ class ThreadSafetyTest {
 
         latch.await()
 
-        val currentMessage = snackbarManager.messages.value
-        assertNotNull(currentMessage)
-        assertEquals("Styled message", currentMessage?.text)
-        assertEquals(customStyle, currentMessage?.style)
+        val currentMessage = runBlocking { snackbarManager.awaitMessage() }
+        assertEquals("Styled message", currentMessage.text)
+        assertEquals(customStyle, currentMessage.style)
     }
 
     @Test
@@ -232,9 +244,7 @@ class ThreadSafetyTest {
         latch.await()
 
         // Should still have a valid state (either null or a valid message)
-        val currentMessage = snackbarManager.messages.value
-        // No assertion on specific message since timing is unpredictable,
-        // but the operations should complete without crashing
+        // Timing is unpredictable here; the absence of an exception indicates success
         assertTrue("Operations completed successfully", true)
     }
 
@@ -253,7 +263,9 @@ class ThreadSafetyTest {
         repeat(clearCount) {
             thread {
                 try {
-                    snackbarManager.clearAllMessages()
+                    runBlocking {
+                        snackbarManager.clearAllMessages()?.join()
+                    }
                     successCount.incrementAndGet()
                 } finally {
                     latch.countDown()
@@ -263,6 +275,8 @@ class ThreadSafetyTest {
 
         latch.await()
         assertEquals(clearCount, successCount.get())
-        assertNull(snackbarManager.messages.value)
+        runBlocking {
+            assertNull(snackbarManager.awaitNullMessage())
+        }
     }
 }

@@ -5,6 +5,8 @@ import androidx.compose.ui.graphics.Color
 import com.vamsi.snapnotify.core.SnackbarManager
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.*
@@ -18,20 +20,30 @@ import org.junit.Test
 class SnapNotifyTest {
 
     private lateinit var snackbarManager: SnackbarManager
+    private val testDispatcher = UnconfinedTestDispatcher()
 
     @Before
     fun setup() {
         // Initialize SnapNotify to ensure the singleton is created
         SnapNotify.initialize()
         snackbarManager = SnackbarManager.getInstance()
+
+        // Configure with test dispatcher for deterministic testing
+        val testConfig = SnapNotifyConfig().withDispatcher(testDispatcher)
+        snackbarManager.updateConfig(testConfig)
+
         // Clear any existing messages
-        snackbarManager.clearAllMessages()
+        runBlocking {
+            snackbarManager.clearAll()
+        }
     }
 
     @After
     fun cleanup() {
         // Clear messages after each test
-        snackbarManager.clearAllMessages()
+        runBlocking {
+            snackbarManager.clearAll()
+        }
     }
 
     // Basic show() methods
@@ -41,7 +53,7 @@ class SnapNotifyTest {
 
         SnapNotify.show(message)
 
-        val currentMessage = snackbarManager.messages.first()
+        val currentMessage = snackbarManager.awaitMessage()
         assertNotNull(currentMessage)
         assertEquals(message, currentMessage?.text)
         assertEquals(SnackbarDuration.Short, currentMessage?.duration)
@@ -57,7 +69,7 @@ class SnapNotifyTest {
 
         SnapNotify.show(message, duration)
 
-        val currentMessage = snackbarManager.messages.first()
+        val currentMessage = snackbarManager.awaitMessage()
         assertNotNull(currentMessage)
         assertEquals(message, currentMessage?.text)
         assertEquals(duration, currentMessage?.duration)
@@ -72,7 +84,7 @@ class SnapNotifyTest {
 
         SnapNotify.show(message, actionLabel, onAction)
 
-        val currentMessage = snackbarManager.messages.first()
+        val currentMessage = snackbarManager.awaitMessage()
         assertNotNull(currentMessage)
         assertEquals(message, currentMessage?.text)
         assertEquals(actionLabel, currentMessage?.actionLabel)
@@ -93,7 +105,7 @@ class SnapNotifyTest {
 
         SnapNotify.show(message, actionLabel, onAction, duration)
 
-        val currentMessage = snackbarManager.messages.first()
+        val currentMessage = snackbarManager.awaitMessage()
         assertNotNull(currentMessage)
         assertEquals(message, currentMessage?.text)
         assertEquals(actionLabel, currentMessage?.actionLabel)
@@ -115,7 +127,7 @@ class SnapNotifyTest {
 
         SnapNotify.showStyled(message, style)
 
-        val currentMessage = snackbarManager.messages.first()
+        val currentMessage = snackbarManager.awaitMessage()
         assertNotNull(currentMessage)
         assertEquals(message, currentMessage?.text)
         assertEquals(style, currentMessage?.style)
@@ -132,7 +144,7 @@ class SnapNotifyTest {
 
         SnapNotify.showStyled(message, style, actionLabel, onAction)
 
-        val currentMessage = snackbarManager.messages.first()
+        val currentMessage = snackbarManager.awaitMessage()
         assertNotNull(currentMessage)
         assertEquals(message, currentMessage?.text)
         assertEquals(actionLabel, currentMessage?.actionLabel)
@@ -153,7 +165,7 @@ class SnapNotifyTest {
 
         SnapNotify.showStyled(message, style, actionLabel, onAction, duration)
 
-        val currentMessage = snackbarManager.messages.first()
+        val currentMessage = snackbarManager.awaitMessage()
         assertNotNull(currentMessage)
         assertEquals(message, currentMessage?.text)
         assertEquals(actionLabel, currentMessage?.actionLabel)
@@ -171,7 +183,7 @@ class SnapNotifyTest {
 
         SnapNotify.showSuccess(message)
 
-        val currentMessage = snackbarManager.messages.first()
+        val currentMessage = snackbarManager.awaitMessage()
         assertNotNull(currentMessage)
         assertEquals(message, currentMessage?.text)
         assertEquals(SnackbarDuration.Short, currentMessage?.duration)
@@ -193,7 +205,7 @@ class SnapNotifyTest {
 
         SnapNotify.showSuccess(message, actionLabel, onAction)
 
-        val currentMessage = snackbarManager.messages.first()
+        val currentMessage = snackbarManager.awaitMessage()
         assertNotNull(currentMessage)
         assertEquals(message, currentMessage?.text)
         assertEquals(actionLabel, currentMessage?.actionLabel)
@@ -209,7 +221,7 @@ class SnapNotifyTest {
 
         SnapNotify.showSuccess(message, duration)
 
-        val currentMessage = snackbarManager.messages.first()
+        val currentMessage = snackbarManager.awaitMessage()
         assertEquals(duration, currentMessage?.duration)
     }
 
@@ -220,7 +232,7 @@ class SnapNotifyTest {
 
         SnapNotify.showError(message)
 
-        val currentMessage = snackbarManager.messages.first()
+        val currentMessage = snackbarManager.awaitMessage()
         assertNotNull(currentMessage)
         assertEquals(message, currentMessage?.text)
 
@@ -241,7 +253,7 @@ class SnapNotifyTest {
 
         SnapNotify.showError(message, actionLabel, onAction)
 
-        val currentMessage = snackbarManager.messages.first()
+        val currentMessage = snackbarManager.awaitMessage()
         assertEquals(actionLabel, currentMessage?.actionLabel)
 
         currentMessage?.onAction?.invoke()
@@ -255,7 +267,7 @@ class SnapNotifyTest {
 
         SnapNotify.showWarning(message)
 
-        val currentMessage = snackbarManager.messages.first()
+        val currentMessage = snackbarManager.awaitMessage()
         assertEquals(message, currentMessage?.text)
 
         // Verify warning colors
@@ -275,7 +287,7 @@ class SnapNotifyTest {
 
         SnapNotify.showWarning(message, actionLabel, onAction)
 
-        val currentMessage = snackbarManager.messages.first()
+        val currentMessage = snackbarManager.awaitMessage()
         assertEquals(actionLabel, currentMessage?.actionLabel)
 
         currentMessage?.onAction?.invoke()
@@ -289,7 +301,7 @@ class SnapNotifyTest {
 
         SnapNotify.showInfo(message)
 
-        val currentMessage = snackbarManager.messages.first()
+        val currentMessage = snackbarManager.awaitMessage()
         assertEquals(message, currentMessage?.text)
 
         // Verify info colors
@@ -309,7 +321,7 @@ class SnapNotifyTest {
 
         SnapNotify.showInfo(message, actionLabel, onAction)
 
-        val currentMessage = snackbarManager.messages.first()
+        val currentMessage = snackbarManager.awaitMessage()
         assertEquals(actionLabel, currentMessage?.actionLabel)
 
         currentMessage?.onAction?.invoke()
@@ -325,13 +337,13 @@ class SnapNotifyTest {
         SnapNotify.show("Message 3")
 
         // Verify messages exist
-        assertNotNull(snackbarManager.messages.first())
+        snackbarManager.awaitMessage()
 
         // Clear all
         SnapNotify.clearAll()
 
         // Verify all cleared
-        assertNull(snackbarManager.messages.first())
+        assertNull(snackbarManager.awaitNullMessage())
     }
 
     // Integration tests
@@ -342,24 +354,26 @@ class SnapNotifyTest {
         SnapNotify.showError("Third")
 
         // First message should be displayed
-        assertEquals("First", snackbarManager.messages.first()?.text)
+        assertEquals("First", snackbarManager.awaitMessage().text)
 
         // Dismiss and check next
         snackbarManager.dismissCurrent()
-        assertEquals("Second", snackbarManager.messages.first()?.text)
+        val secondMessage = snackbarManager.awaitMessage()
+        assertEquals("Second", secondMessage.text)
 
         // Verify it has success styling
-        val style = snackbarManager.messages.first()?.style
+        val style = secondMessage.style
         assertEquals(Color(0xFF2E7D32), style?.containerColor)
     }
 
     @Test
     fun `mixed message types maintain correct styling`() = runTest {
         SnapNotify.showError("Error")
+        snackbarManager.awaitMessage()
         snackbarManager.dismissCurrent()
 
         SnapNotify.showWarning("Warning")
-        val currentMessage = snackbarManager.messages.first()
+        val currentMessage = snackbarManager.awaitMessage()
 
         // Verify warning styling is applied correctly
         val style = currentMessage?.style

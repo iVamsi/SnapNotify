@@ -2,38 +2,32 @@ package com.vamsi.snapnotify
 
 import androidx.compose.material3.SnackbarDuration
 import com.vamsi.snapnotify.core.SnackbarManager
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
-import org.junit.Test
 import org.junit.After
 import org.junit.Assert.*
+import org.junit.Before
+import org.junit.Test
 
+@ExperimentalCoroutinesApi
 class SnapNotifyProviderTest {
 
-    @After
-    fun tearDown() {
-        // Reset provider registry state after each test
-        ProviderRegistry.reset()
+    private val testDispatcher = UnconfinedTestDispatcher()
+
+    @Before
+    fun setup() = runBlocking {
+        val snackbarManager = SnackbarManager.getInstance()
+        snackbarManager.updateConfig(SnapNotifyConfig().withDispatcher(testDispatcher))
+        snackbarManager.clearAll()
     }
 
-    @Test
-    fun testProviderRegistryBehavior() {
-        // Reset state at beginning to ensure clean test
-        ProviderRegistry.reset()
-
-        // Test provider registry functionality without UI
-        val isActive1 = ProviderRegistry.registerProvider()
-        assertTrue("First provider should be active", isActive1)
-
-        val isActive2 = ProviderRegistry.registerProvider()
-        assertFalse("Second provider should not be active (nested)", isActive2)
-
-        ProviderRegistry.unregisterProvider()
-        ProviderRegistry.unregisterProvider() // Need to unregister both
-
-        val isActive3 = ProviderRegistry.registerProvider()
-        assertTrue("Provider should be active after unregistering all", isActive3)
-
-        ProviderRegistry.unregisterProvider()
+    @After
+    fun tearDown() = runBlocking {
+        val snackbarManager = SnackbarManager.getInstance()
+        snackbarManager.updateConfig(SnapNotifyConfig())
+        snackbarManager.clearAll()
     }
 
     @Test
@@ -44,10 +38,9 @@ class SnapNotifyProviderTest {
         // Test that duration logic works properly in manager
         SnapNotify.show("Standard message", SnackbarDuration.Short)
 
-        val message = snackbarManager.messages.value
-        assertNotNull(message)
-        assertEquals("Standard message", message?.text)
-        assertEquals(SnackbarDuration.Short, message?.effectiveDuration?.getStandardDuration())
+        val message = snackbarManager.awaitMessage()
+        assertEquals("Standard message", message.text)
+        assertEquals(SnackbarDuration.Short, message.effectiveDuration.getStandardDuration())
     }
 
     @Test
@@ -57,11 +50,10 @@ class SnapNotifyProviderTest {
 
         SnapNotify.show("Custom message", durationMillis = 5500)
 
-        val message = snackbarManager.messages.value
-        assertNotNull(message)
-        assertEquals("Custom message", message?.text)
-        assertEquals(5500L, message?.effectiveDuration?.getMilliseconds())
-        assertTrue(message?.effectiveDuration is SnackbarDurationWrapper.Custom)
+        val message = snackbarManager.awaitMessage()
+        assertEquals("Custom message", message.text)
+        assertEquals(5500L, message.effectiveDuration.getMilliseconds())
+        assertTrue(message.effectiveDuration is SnackbarDurationWrapper.Custom)
     }
 
     @Test
@@ -71,10 +63,9 @@ class SnapNotifyProviderTest {
 
         SnapNotify.show("Indefinite message", durationMillis = Long.MAX_VALUE)
 
-        val message = snackbarManager.messages.value
-        assertNotNull(message)
-        assertEquals("Indefinite message", message?.text)
-        assertTrue(message?.effectiveDuration?.isIndefinite() == true)
+        val message = snackbarManager.awaitMessage()
+        assertEquals("Indefinite message", message.text)
+        assertTrue(message.effectiveDuration.isIndefinite())
     }
 
     @Test
@@ -90,21 +81,4 @@ class SnapNotifyProviderTest {
         assertEquals(androidx.compose.ui.graphics.Color.White, style.contentColor)
     }
 
-    @Test
-    fun testProviderRegistryReset() {
-        // Reset state at beginning to ensure clean test
-        ProviderRegistry.reset()
-
-        // Test provider registry reset functionality
-        ProviderRegistry.registerProvider()
-        ProviderRegistry.registerProvider() // Second one should not be active
-
-        ProviderRegistry.reset()
-
-        // After reset, first provider should be active again
-        val isActiveAfterReset = ProviderRegistry.registerProvider()
-        assertTrue("Provider should be active after registry reset", isActiveAfterReset)
-
-        ProviderRegistry.unregisterProvider()
-    }
 }

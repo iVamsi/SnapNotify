@@ -1,9 +1,12 @@
 package com.vamsi.snapnotify
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -11,10 +14,10 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -22,6 +25,11 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
+
+/**
+ * CompositionLocal to track if we're already inside a SnapNotifyProvider.
+ */
+internal val LocalSnapNotifyProvider = staticCompositionLocalOf { false }
 
 /**
  * Composable that wraps content and handles snackbar display logic.
@@ -41,12 +49,23 @@ import kotlinx.coroutines.selects.select
  *
  * @param modifier Modifier to be applied to the container
  * @param style Optional styling configuration for snackbars. If null, uses Material3 defaults
+ * @param config Optional configuration for the snackbar queue (max size, drop callback).
+ * If provided, this will update the global SnapNotify configuration. For app-wide config,
+ * prefer using SnapNotify.configure() instead.
+ * @param hostAlignment Alignment for the snackbar host within the provider's Box
+ * @param hostInsets Insets applied to the snackbar host (defaults to navigation + IME)
+ * @param hostContent Optional slot to completely override the snackbar host rendering
+ * and styling (receives the resolved [SnackbarStyle])
  * @param content The content to be wrapped with snackbar functionality
  */
 @Composable
 fun SnapNotifyProvider(
     modifier: Modifier = Modifier,
     style: SnackbarStyle? = null,
+    config: SnapNotifyConfig? = null,
+    hostAlignment: Alignment = Alignment.BottomCenter,
+    hostInsets: WindowInsets = WindowInsets.navigationBars.union(WindowInsets.ime),
+    hostContent: (@Composable BoxScope.(SnackbarHostState, SnackbarStyle) -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
     val alreadyInProvider = LocalSnapNotifyProvider.current
@@ -62,19 +81,25 @@ fun SnapNotifyProvider(
     val currentMessage = snapNotifyState.currentMessage.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val snackbarStyle = style ?: SnackbarStyle.default()
-
-    // Register this provider and track its lifecycle
-    DisposableEffect(Unit) {
-        val isActive = ProviderRegistry.registerProvider()
-
-        onDispose {
-            ProviderRegistry.unregisterProvider()
+    val resolvedHostContent: @Composable BoxScope.(SnackbarHostState, SnackbarStyle) -> Unit =
+        hostContent ?: { hostState, currentStyle ->
+            SnackbarHost(
+                hostState = hostState,
+                modifier = Modifier
+                    .align(hostAlignment)
+                    .windowInsetsPadding(hostInsets)
+            ) { snackbarData ->
+                StyledSnackbar(
+                    snackbarData = snackbarData,
+                    style = currentStyle
+                )
+            }
         }
-    }
 
-    // Initialize SnapNotify 
-    LaunchedEffect(Unit) {
+    // Initialize SnapNotify and apply config if provided
+    LaunchedEffect(config) {
         SnapNotify.initialize()
+        config?.let { SnapNotify.configure(it) }
     }
 
     // Handle message display
@@ -146,19 +171,8 @@ fun SnapNotifyProvider(
             // Content renders edge-to-edge without any padding
             content()
 
-            // Snackbar with proper navigation bar padding only
-            SnackbarHost(
-                hostState = snackbarHostState,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .windowInsetsPadding(WindowInsets.navigationBars)
-            ) { snackbarData ->
-                val messageStyle = currentMessage.value?.style ?: snackbarStyle
-                StyledSnackbar(
-                    snackbarData = snackbarData,
-                    style = messageStyle
-                )
-            }
+            val messageStyle = currentMessage.value?.style ?: snackbarStyle
+            resolvedHostContent(snackbarHostState, messageStyle)
         }
     }
 }

@@ -2,11 +2,33 @@ package com.vamsi.snapnotify
 
 import androidx.compose.material3.SnackbarDuration
 import com.vamsi.snapnotify.core.SnackbarManager
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
-import org.junit.Test
+import org.junit.After
 import org.junit.Assert.*
+import org.junit.Before
+import org.junit.Test
 
+@ExperimentalCoroutinesApi
 class CustomDurationTest {
+
+    private val testDispatcher = UnconfinedTestDispatcher()
+
+    @Before
+    fun setup() = runBlocking {
+        val snackbarManager = SnackbarManager.getInstance()
+        snackbarManager.updateConfig(SnapNotifyConfig().withDispatcher(testDispatcher))
+        snackbarManager.clearAll()
+    }
+
+    @After
+    fun tearDown() = runBlocking {
+        val snackbarManager = SnackbarManager.getInstance()
+        snackbarManager.updateConfig(SnapNotifyConfig())
+        snackbarManager.clearAll()
+    }
 
     @Test
     fun testDurationWrapperCreation() {
@@ -96,14 +118,12 @@ class CustomDurationTest {
 
         snackbarManager.showWithCustomDuration("Test message", 3000)
 
-        val currentMessage = snackbarManager.messages.value
-        assertNotNull(currentMessage)
-        assertEquals("Test message", currentMessage?.text)
+        val currentMessage = snackbarManager.awaitMessage()
+        assertEquals("Test message", currentMessage.text)
 
-        val effectiveDuration = currentMessage?.effectiveDuration
-        assertNotNull(effectiveDuration)
+        val effectiveDuration = currentMessage.effectiveDuration
         assertTrue(effectiveDuration is SnackbarDurationWrapper.Custom)
-        assertEquals(3000L, effectiveDuration?.getMilliseconds())
+        assertEquals(3000L, effectiveDuration.getMilliseconds())
     }
 
     @Test
@@ -120,19 +140,17 @@ class CustomDurationTest {
             actionExecuted = true
         }
 
-        val currentMessage = snackbarManager.messages.value
-        assertNotNull(currentMessage)
-        assertEquals("Test message with action", currentMessage?.text)
-        assertEquals("Action", currentMessage?.actionLabel)
-        assertNotNull(currentMessage?.onAction)
+        val currentMessage = snackbarManager.awaitMessage()
+        assertEquals("Test message with action", currentMessage.text)
+        assertEquals("Action", currentMessage.actionLabel)
+        assertNotNull(currentMessage.onAction)
 
         // Execute the action
-        currentMessage?.onAction?.invoke()
+        currentMessage.onAction?.invoke()
         assertTrue(actionExecuted)
 
-        val effectiveDuration = currentMessage?.effectiveDuration
-        assertNotNull(effectiveDuration)
-        assertEquals(2500L, effectiveDuration?.getMilliseconds())
+        val effectiveDuration = currentMessage.effectiveDuration
+        assertEquals(2500L, effectiveDuration.getMilliseconds())
     }
 
     @Test
@@ -143,10 +161,9 @@ class CustomDurationTest {
         // Test basic custom duration
         SnapNotify.show("Custom duration message", durationMillis = 7000)
 
-        val currentMessage = snackbarManager.messages.value
-        assertNotNull(currentMessage)
-        assertEquals("Custom duration message", currentMessage?.text)
-        assertEquals(7000L, currentMessage?.effectiveDuration?.getMilliseconds())
+        val currentMessage = snackbarManager.awaitMessage()
+        assertEquals("Custom duration message", currentMessage.text)
+        assertEquals(7000L, currentMessage.effectiveDuration.getMilliseconds())
 
         // Clear and test with action
         snackbarManager.clearAll()
@@ -155,14 +172,13 @@ class CustomDurationTest {
             actionTriggered = true
         }, durationMillis = 1500)
 
-        val messageWithAction = snackbarManager.messages.value
-        assertNotNull(messageWithAction)
-        assertEquals("Action message", messageWithAction?.text)
-        assertEquals("Click", messageWithAction?.actionLabel)
-        assertEquals(1500L, messageWithAction?.effectiveDuration?.getMilliseconds())
+        val messageWithAction = snackbarManager.awaitMessage()
+        assertEquals("Action message", messageWithAction.text)
+        assertEquals("Click", messageWithAction.actionLabel)
+        assertEquals(1500L, messageWithAction.effectiveDuration.getMilliseconds())
 
         // Execute action
-        messageWithAction?.onAction?.invoke()
+        messageWithAction.onAction?.invoke()
         assertTrue(actionTriggered)
     }
 
@@ -174,11 +190,10 @@ class CustomDurationTest {
         // Test success theme with custom duration
         SnapNotify.showSuccess("Success message", durationMillis = 6000)
 
-        val successMessage = snackbarManager.messages.value
-        assertNotNull(successMessage)
-        assertEquals("Success message", successMessage?.text)
-        assertEquals(6000L, successMessage?.effectiveDuration?.getMilliseconds())
-        assertNotNull(successMessage?.style)
+        val successMessage = snackbarManager.awaitMessage()
+        assertEquals("Success message", successMessage.text)
+        assertEquals(6000L, successMessage.effectiveDuration.getMilliseconds())
+        assertNotNull(successMessage.style)
 
         // Test error theme with custom duration and action
         snackbarManager.clearAll()
@@ -187,34 +202,31 @@ class CustomDurationTest {
             retryTriggered = true
         }, durationMillis = 8000)
 
-        val errorMessage = snackbarManager.messages.value
-        assertNotNull(errorMessage)
-        assertEquals("Error occurred", errorMessage?.text)
-        assertEquals("Retry", errorMessage?.actionLabel)
-        assertEquals(8000L, errorMessage?.effectiveDuration?.getMilliseconds())
-        assertNotNull(errorMessage?.style)
+        val errorMessage = snackbarManager.awaitMessage()
+        assertEquals("Error occurred", errorMessage.text)
+        assertEquals("Retry", errorMessage.actionLabel)
+        assertEquals(8000L, errorMessage.effectiveDuration.getMilliseconds())
+        assertNotNull(errorMessage.style)
 
         // Execute retry action
-        errorMessage?.onAction?.invoke()
+        errorMessage.onAction?.invoke()
         assertTrue(retryTriggered)
 
         // Test warning theme
         snackbarManager.clearAll()
         SnapNotify.showWarning("Warning message", durationMillis = 4500)
 
-        val warningMessage = snackbarManager.messages.value
-        assertNotNull(warningMessage)
-        assertEquals("Warning message", warningMessage?.text)
-        assertEquals(4500L, warningMessage?.effectiveDuration?.getMilliseconds())
+        val warningMessage = snackbarManager.awaitMessage()
+        assertEquals("Warning message", warningMessage.text)
+        assertEquals(4500L, warningMessage.effectiveDuration.getMilliseconds())
 
         // Test info theme
         snackbarManager.clearAll()
         SnapNotify.showInfo("Info message", durationMillis = 3500)
 
-        val infoMessage = snackbarManager.messages.value
-        assertNotNull(infoMessage)
-        assertEquals("Info message", infoMessage?.text)
-        assertEquals(3500L, infoMessage?.effectiveDuration?.getMilliseconds())
+        val infoMessage = snackbarManager.awaitMessage()
+        assertEquals("Info message", infoMessage.text)
+        assertEquals(3500L, infoMessage.effectiveDuration.getMilliseconds())
     }
 
     @Test
@@ -230,11 +242,10 @@ class CustomDurationTest {
 
         SnapNotify.showStyled("Styled message", customStyle, durationMillis = 5500)
 
-        val styledMessage = snackbarManager.messages.value
-        assertNotNull(styledMessage)
-        assertEquals("Styled message", styledMessage?.text)
-        assertEquals(5500L, styledMessage?.effectiveDuration?.getMilliseconds())
-        assertEquals(customStyle, styledMessage?.style)
+        val styledMessage = snackbarManager.awaitMessage()
+        assertEquals("Styled message", styledMessage.text)
+        assertEquals(5500L, styledMessage.effectiveDuration.getMilliseconds())
+        assertEquals(customStyle, styledMessage.style)
 
         // Test styled with action
         snackbarManager.clearAll()
@@ -243,14 +254,13 @@ class CustomDurationTest {
             styledActionTriggered = true
         }, durationMillis = 2200)
 
-        val styledWithAction = snackbarManager.messages.value
-        assertNotNull(styledWithAction)
-        assertEquals("Styled with action", styledWithAction?.text)
-        assertEquals("Custom Action", styledWithAction?.actionLabel)
-        assertEquals(2200L, styledWithAction?.effectiveDuration?.getMilliseconds())
-        assertEquals(customStyle, styledWithAction?.style)
+        val styledWithAction = snackbarManager.awaitMessage()
+        assertEquals("Styled with action", styledWithAction.text)
+        assertEquals("Custom Action", styledWithAction.actionLabel)
+        assertEquals(2200L, styledWithAction.effectiveDuration.getMilliseconds())
+        assertEquals(customStyle, styledWithAction.style)
 
-        styledWithAction?.onAction?.invoke()
+        styledWithAction.onAction?.invoke()
         assertTrue(styledActionTriggered)
     }
 
@@ -309,20 +319,20 @@ class CustomDurationTest {
         // Test all method overloads work with custom duration
         snackbarManager.clearAll()
         SnapNotify.show("Test", durationMillis = 1000)
-        assertEquals(1000L, snackbarManager.messages.value?.effectiveDuration?.getMilliseconds())
+        assertEquals(1000L, snackbarManager.awaitMessage().effectiveDuration.getMilliseconds())
 
         snackbarManager.clearAll()
         SnapNotify.show("Test", "Action", {}, durationMillis = 2000)
-        assertEquals(2000L, snackbarManager.messages.value?.effectiveDuration?.getMilliseconds())
+        assertEquals(2000L, snackbarManager.awaitMessage().effectiveDuration.getMilliseconds())
 
         val style = SnackbarStyle()
         snackbarManager.clearAll()
         SnapNotify.showStyled("Test", style, durationMillis = 3000)
-        assertEquals(3000L, snackbarManager.messages.value?.effectiveDuration?.getMilliseconds())
+        assertEquals(3000L, snackbarManager.awaitMessage().effectiveDuration.getMilliseconds())
 
         snackbarManager.clearAll()
         SnapNotify.showStyled("Test", style, "Action", {}, durationMillis = 4000)
-        assertEquals(4000L, snackbarManager.messages.value?.effectiveDuration?.getMilliseconds())
+        assertEquals(4000L, snackbarManager.awaitMessage().effectiveDuration.getMilliseconds())
     }
 
     @Test
@@ -332,16 +342,14 @@ class CustomDurationTest {
         // When both duration and durationMillis are provided, durationMillis should take precedence
         snackbarManager.clearAll()
         SnapNotify.show("Test", SnackbarDuration.Long, 1500) // Custom should override standard
-        assertEquals(1500L, snackbarManager.messages.value?.effectiveDuration?.getMilliseconds())
+        assertEquals(1500L, snackbarManager.awaitMessage().effectiveDuration.getMilliseconds())
 
         // When only standard duration is provided
         snackbarManager.clearAll()
         SnapNotify.show("Test", SnackbarDuration.Indefinite)
-        assertTrue(snackbarManager.messages.value?.effectiveDuration?.isIndefinite() == true)
-        assertEquals(
-            Long.MAX_VALUE,
-            snackbarManager.messages.value?.effectiveDuration?.getMilliseconds()
-        )
+        val indefiniteMessage = snackbarManager.awaitMessage()
+        assertTrue(indefiniteMessage.effectiveDuration.isIndefinite())
+        assertEquals(Long.MAX_VALUE, indefiniteMessage.effectiveDuration.getMilliseconds())
     }
 
     @Test

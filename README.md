@@ -5,8 +5,8 @@
 [![Compose](https://img.shields.io/badge/Compose-1.5.0+-blue.svg)](https://developer.android.com/jetpack/compose)
 [![Android](https://img.shields.io/badge/Android-API%2024+-green.svg)](https://android-arsenal.com/api?level=24)
 [![License](https://img.shields.io/badge/License-Apache%202.0-orange.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Maven Central](https://img.shields.io/badge/Maven%20Central-1.0.4-red.svg)](https://central.sonatype.com/artifact/io.github.ivamsi/snapnotify/1.0.4)
-[![Tests](https://img.shields.io/badge/Tests-65%2B%20passing-brightgreen.svg)](#-testing)
+[![Maven Central](https://img.shields.io/badge/Maven%20Central-1.0.5-red.svg)](https://central.sonatype.com/artifact/io.github.ivamsi/snapnotify/1.0.5)
+[![Tests](https://img.shields.io/badge/Tests-74%2B%20passing-brightgreen.svg)](#-testing)
 [![Coverage](https://img.shields.io/badge/Coverage-100%25%20Public%20API-brightgreen.svg)](#-testing)
 
 > A drop-in Snackbar solution for Jetpack Compose that brings back the simplicity of the View system while leveraging modern Compose patterns.
@@ -76,7 +76,7 @@ Add to your `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("io.github.ivamsi:snapnotify:1.0.4")
+    implementation("io.github.ivamsi:snapnotify:1.0.5")
 }
 ```
 
@@ -186,10 +186,13 @@ SnapNotify.showStyled("10 second custom style", customStyle, durationMillis = 10
 
 ## 🌟 Key Features
 
-### 🆕 Latest Updates
-- **Custom Duration Support**: Now supports precise millisecond timing control for all methods
-- **Enhanced Thread Safety**: Improved concurrent access handling and error resilience
-- **Expanded Test Coverage**: 65+ tests covering custom durations and edge cases
+### 🆕 Latest Updates (v1.0.5)
+- **Queue Configuration**: Configure max queue size and get notified when messages are dropped
+- **Enhanced Keyboard Handling**: Snackbars now automatically avoid IME (keyboard) and work with navigation bars
+- **Provider Flexibility**: New parameters for alignment, insets, and custom host rendering
+- **Architecture Improvements**: Non-blocking mutex, proper dispatcher management, optimized style reuse
+- **Custom Duration Support**: Precise millisecond timing control for all methods
+- **Expanded Test Coverage**: 74+ tests with 100% public API coverage
 
 ### ✅ Flexible Setup
 - Use `SnapNotifyProvider` at any level of your app hierarchy
@@ -461,15 +464,64 @@ SnapNotify follows clean architecture principles with proper separation of conce
 
 ## 🔧 Configuration
 
-### Custom Styling
+### Queue Configuration
+
+Control the internal message queue behavior:
+
+```kotlin
+// Configure globally
+SnapNotify.configure(
+    SnapNotifyConfig(
+        maxQueueSize = 100,  // Default is 50
+        onMessageDropped = { droppedMessage ->
+            // Log or monitor dropped messages
+            Log.w("SnapNotify", "Message dropped: $droppedMessage")
+        }
+    )
+)
+
+// Or configure per-provider (feature-scoped)
+SnapNotifyProvider(
+    config = SnapNotifyConfig(
+        maxQueueSize = 20,
+        onMessageDropped = { msg -> /* handle drop */ }
+    )
+) {
+    FeatureContent()
+}
+```
+
+**Queue Management:**
+- When the queue is full, the oldest message is dropped
+- The `onMessageDropped` callback is invoked with the dropped message text
+- Useful for monitoring queue saturation in production
+- Prevents memory issues from unbounded message accumulation
+
+### Enhanced Provider Options
 
 ```kotlin
 SnapNotifyProvider(
-    modifier = Modifier.padding(16.dp) // Custom positioning
+    modifier = Modifier.padding(16.dp),
+    style = SnackbarStyle.success(),  // Default style for all messages
+    config = SnapNotifyConfig(maxQueueSize = 50),  // Queue configuration
+    hostAlignment = Alignment.TopCenter,  // Position snackbars at top
+    hostInsets = WindowInsets.statusBars,  // Custom insets
+    hostContent = { hostState, style ->  // Complete customization
+        // Custom snackbar host rendering
+        SnackbarHost(hostState) { data ->
+            // Your custom snackbar UI
+        }
+    }
 ) {
     MyAppContent()
 }
 ```
+
+**Key Features:**
+- **hostAlignment**: Position snackbars anywhere (Top, Bottom, Center)
+- **hostInsets**: Control padding for system bars and keyboard (IME)
+- **hostContent**: Complete control over snackbar rendering
+- **config**: Feature-scoped queue configuration
 
 ### Hilt Integration (Optional)
 
@@ -481,6 +533,9 @@ SnapNotify works without any DI framework. If you use Hilt in your project, it i
 
 ```kotlin
 object SnapNotify {
+    // Configuration
+    fun configure(config: SnapNotifyConfig)
+
     // Basic messages
     fun show(message: String, duration: SnackbarDuration = SnackbarDuration.Short)
     fun show(message: String, duration: SnackbarDuration = SnackbarDuration.Short, durationMillis: Long? = null)
@@ -497,7 +552,7 @@ object SnapNotify {
         duration: SnackbarDuration = SnackbarDuration.Short,
         durationMillis: Long? = null
     )
-    
+
     // Custom styled messages
     fun showStyled(
         message: String,
@@ -525,7 +580,7 @@ object SnapNotify {
         duration: SnackbarDuration = SnackbarDuration.Short,
         durationMillis: Long? = null
     )
-    
+
     // Themed messages (all support durationMillis parameter)
     fun showSuccess(message: String, duration: SnackbarDuration = SnackbarDuration.Short, durationMillis: Long? = null)
     fun showSuccess(
@@ -562,7 +617,7 @@ object SnapNotify {
         duration: SnackbarDuration = SnackbarDuration.Short,
         durationMillis: Long? = null
     )
-    
+
     // Management
     fun clearAll()
 }
@@ -575,7 +630,20 @@ object SnapNotify {
 fun SnapNotifyProvider(
     modifier: Modifier = Modifier,
     style: SnackbarStyle? = null,
+    config: SnapNotifyConfig? = null,
+    hostAlignment: Alignment = Alignment.BottomCenter,
+    hostInsets: WindowInsets = WindowInsets.navigationBars.union(WindowInsets.ime),
+    hostContent: (@Composable BoxScope.(SnackbarHostState, SnackbarStyle) -> Unit)? = null,
     content: @Composable () -> Unit
+)
+```
+
+### SnapNotifyConfig Data Class
+
+```kotlin
+data class SnapNotifyConfig(
+    val maxQueueSize: Int = 50,  // Maximum pending messages
+    val onMessageDropped: ((String) -> Unit)? = null  // Callback when message is dropped
 )
 ```
 
@@ -603,13 +671,14 @@ data class SnackbarStyle(
 
 ## 🧪 Testing
 
-SnapNotify includes comprehensive test coverage with **65+ test cases** covering **100% of the public API**:
+SnapNotify includes comprehensive test coverage with **74+ test cases** covering **100% of the public API**:
 
 ### Test Coverage
-- **✅ Public API Methods**: All 13 SnapNotify methods tested
+- **✅ Public API Methods**: All SnapNotify methods tested
+- **✅ Queue Management**: Backpressure, message dropping, and configuration
 - **✅ Custom Duration System**: Complete SnackbarDurationWrapper functionality
 - **✅ Styling System**: Complete SnackbarStyle functionality
-- **✅ Message Queueing**: Thread-safe queue management
+- **✅ Thread Safety**: Concurrent access and race condition handling
 - **✅ Action Callbacks**: User interaction handling
 - **✅ Timeout Handling**: Custom duration timeout behavior
 - **✅ Edge Cases**: Boundary value testing and error scenarios

@@ -72,8 +72,7 @@ fun DemoScreen(
         topBar = {
             TopAppBar(
                 title = { Text("SnapNotify Demo") },
-                scrollBehavior = scrollBehavior,
-                windowInsets = WindowInsets(0.dp, 0.dp)
+                scrollBehavior = scrollBehavior
             )
         }
     ) { paddingValues ->
