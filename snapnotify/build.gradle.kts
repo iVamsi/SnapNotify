@@ -2,9 +2,8 @@ import com.vanniktech.maven.publish.AndroidSingleVariantLibrary
 
 plugins {
     alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("com.vanniktech.maven.publish") version "0.34.0"
+    alias(libs.plugins.vanniktech.maven.publish)
 }
 
 android {
@@ -32,13 +31,7 @@ android {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
     }
-    
-    kotlin {
-        compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
-        }
-    }
-    
+
     buildFeatures {
         compose = true
     }
@@ -85,7 +78,7 @@ mavenPublishing {
     publishToMavenCentral(automaticRelease = true)
     signAllPublications()
     
-    coordinates("io.github.ivamsi", "snapnotify", "1.0.5")
+    coordinates("io.github.ivamsi", "snapnotify", "1.0.6")
 
     pom {
         name.set("SnapNotify")

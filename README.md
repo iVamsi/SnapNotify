@@ -1,11 +1,11 @@
 # SnapNotify
 
 [![Android Weekly](https://androidweekly.net/issues/issue-692/badge)](https://androidweekly.net/issues/issue-692)
-[![Kotlin](https://img.shields.io/badge/Kotlin-1.9.0+-purple.svg)](https://kotlinlang.org)
-[![Compose](https://img.shields.io/badge/Compose-1.5.0+-blue.svg)](https://developer.android.com/jetpack/compose)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.3+-purple.svg)](https://kotlinlang.org)
+[![Compose](https://img.shields.io/badge/Compose-Jetpack%20BOM%202026-blue.svg)](https://developer.android.com/develop/ui/compose/bom)
 [![Android](https://img.shields.io/badge/Android-API%2024+-green.svg)](https://android-arsenal.com/api?level=24)
 [![License](https://img.shields.io/badge/License-Apache%202.0-orange.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Maven Central](https://img.shields.io/badge/Maven%20Central-1.0.5-red.svg)](https://central.sonatype.com/artifact/io.github.ivamsi/snapnotify/1.0.5)
+[![Maven Central](https://img.shields.io/badge/Maven%20Central-1.0.6-red.svg)](https://central.sonatype.com/artifact/io.github.ivamsi/snapnotify/1.0.6)
 [![Tests](https://img.shields.io/badge/Tests-74%2B%20passing-brightgreen.svg)](#-testing)
 [![Coverage](https://img.shields.io/badge/Coverage-100%25%20Public%20API-brightgreen.svg)](#-testing)
 
@@ -76,12 +76,28 @@ Add to your `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("io.github.ivamsi:snapnotify:1.0.5")
+    implementation("io.github.ivamsi:snapnotify:1.0.6")
 }
 ```
 
 **Hilt Integration (Optional):**
 SnapNotify works with or without Hilt! If you use Hilt, no additional setup needed.
+
+## Changelog
+
+Release history is in [CHANGELOG.md](CHANGELOG.md).
+
+## Developing
+
+This repository’s sample app depends on `project(":snapnotify")` so `./gradlew check` works on a clean clone without publishing. To validate the same artifact consumers get from Maven, run `./gradlew :snapnotify:publishToMavenLocal` and point a module to `io.github.ivamsi:snapnotify:1.0.6` with `mavenLocal()` in `dependencyResolutionManagement` (or your module repositories).
+
+## Releasing (maintainers)
+
+1. Bump the library version in `snapnotify/build.gradle.kts` (`mavenPublishing { coordinates(...) }`), demo `versionCode` / `versionName`, [CHANGELOG.md](CHANGELOG.md), and the installation/coordinates snippets in this README.
+2. Run `./gradlew check`.
+3. Commit, create an annotated tag `vX.Y.Z`, and push the branch and tag to GitHub.
+4. Publish to Maven Central: `./gradlew :snapnotify:publishAndReleaseToMavenCentral` with [Central Portal credentials and signing](https://vanniktech.github.io/gradle-maven-publish-plugin/central/) (see comments in `gradle.properties`).
+5. On GitHub, create a **Release** from that tag and attach release notes (can mirror the changelog section).
 
 ## 🎯 Quick Start
 
@@ -186,7 +202,8 @@ SnapNotify.showStyled("10 second custom style", customStyle, durationMillis = 10
 
 ## 🌟 Key Features
 
-### 🆕 Latest Updates (v1.0.5)
+### 🆕 Latest Updates (v1.0.6)
+- **Toolchain**: Android Gradle Plugin 9.1 / Gradle 9.3.1, Kotlin 2.3.20 with [built-in Kotlin in AGP 9](https://developer.android.com/build/migrate-to-built-in-kotlin), updated AndroidX / Compose BOM / Hilt
 - **Queue Configuration**: Configure max queue size and get notified when messages are dropped
 - **Enhanced Keyboard Handling**: Snackbars now automatically avoid IME (keyboard) and work with navigation bars
 - **Provider Flexibility**: New parameters for alignment, insets, and custom host rendering
