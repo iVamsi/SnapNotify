@@ -22,7 +22,7 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       # The root check task pulls in unit tests, lint, and
       # verifyDemoConsumerRelease, which assembles the demo through R8.
