@@ -4,10 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarData
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -16,11 +13,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
 /**
- * A customizable snackbar composable that applies the provided SnackbarStyle.
+ * A customizable snackbar composable that applies the provided [SnackbarStyle] and
+ * accessibility semantics ([LiveRegionMode]).
  *
  * @param snackbarData The snackbar data containing message and action information
  * @param style The styling configuration to apply
@@ -32,33 +32,42 @@ internal fun StyledSnackbar(
     style: SnackbarStyle,
     modifier: Modifier = Modifier,
 ) {
-    val containerColor = if (style.containerColor != Color.Unspecified) {
-        style.containerColor
+    val snapVisuals = snackbarData.visuals as? SnapNotifyVisuals
+    val resolvedStyle = snapVisuals?.style ?: style
+
+    val isAssertive = snapVisuals?.isAssertive == true
+
+    val containerColor = if (resolvedStyle.containerColor != Color.Unspecified) {
+        resolvedStyle.containerColor
     } else {
         MaterialTheme.colorScheme.inverseSurface
     }
 
-    val contentColor = if (style.contentColor != Color.Unspecified) {
-        style.contentColor
+    val contentColor = if (resolvedStyle.contentColor != Color.Unspecified) {
+        resolvedStyle.contentColor
     } else {
         MaterialTheme.colorScheme.inverseOnSurface
     }
 
-    val actionColor = if (style.actionColor != Color.Unspecified) {
-        style.actionColor
+    val actionColor = if (resolvedStyle.actionColor != Color.Unspecified) {
+        resolvedStyle.actionColor
     } else {
         MaterialTheme.colorScheme.inversePrimary
     }
 
-    val messageTextStyle = style.messageTextStyle ?: MaterialTheme.typography.bodyMedium
-    val actionTextStyle = style.actionTextStyle ?: MaterialTheme.typography.labelLarge
+    val messageTextStyle = resolvedStyle.messageTextStyle ?: MaterialTheme.typography.bodyMedium
+    val actionTextStyle = resolvedStyle.actionTextStyle ?: MaterialTheme.typography.labelLarge
 
-    val shape = style.shape ?: MaterialTheme.shapes.small
-    val elevation = style.elevation ?: 6.dp
+    val shape = resolvedStyle.shape ?: MaterialTheme.shapes.small
+    val elevation = resolvedStyle.elevation ?: 6.dp
 
-    // Create a custom snackbar with full styling control
     Surface(
-        modifier = modifier.padding(horizontal = 16.dp),
+        modifier = modifier
+            .padding(horizontal = 16.dp)
+            // Announce on the container so the message and its action label are read as one unit.
+            .semantics(mergeDescendants = true) {
+                liveRegion = if (isAssertive) LiveRegionMode.Assertive else LiveRegionMode.Polite
+            },
         shape = shape,
         color = containerColor,
         shadowElevation = elevation
