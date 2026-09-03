@@ -8,7 +8,7 @@ plugins {
 
 android {
     namespace = "com.vamsi.snapnotify"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 24
@@ -115,5 +115,4 @@ mavenPublishing {
         publishJavadocJar = true
     ))
 }
-
 
