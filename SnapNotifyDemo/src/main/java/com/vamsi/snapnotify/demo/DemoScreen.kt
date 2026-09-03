@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.vamsi.snapnotify.SnapNotify
+import com.vamsi.snapnotify.SnackbarPriority
 import com.vamsi.snapnotify.SnackbarStyle
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -283,6 +284,40 @@ fun DemoScreen(
                 )
             }) {
                 Text("10s Custom Style")
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Text("v1.1.0 Features (Priorities & Deduplication)")
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(onClick = {
+                SnapNotify.showUrgent(
+                    message = "🚨 URGENT: Preempted current notification!",
+                    actionLabel = "Acknowledge",
+                    onAction = {}
+                )
+            }) {
+                Text("Show Urgent Message (Preempts active)")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(onClick = {
+                SnapNotify.show("Normal priority message")
+                SnapNotify.show("Low priority update", priority = SnackbarPriority.Low)
+                SnapNotify.show("High priority security alert!", priority = SnackbarPriority.High)
+            }) {
+                Text("Test Priority Queue (High before Low)")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(onClick = {
+                SnapNotify.show("Identical duplicate notification")
+            }) {
+                Text("Test Deduplication (Tap repeatedly)")
             }
         }
     }

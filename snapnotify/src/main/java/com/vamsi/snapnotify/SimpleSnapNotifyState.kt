@@ -10,20 +10,20 @@ import kotlinx.coroutines.launch
 
 /**
  * Simple state holder for SnapNotify that doesn't require Hilt dependency injection.
- * 
- * This class provides the same functionality as SnapNotifyViewModel but works without
+ *
+ * This class provides snackbar state management without
  * any DI framework, making it suitable for minimal dependency setups.
  */
 internal class SimpleSnapNotifyState(
     private val snackbarManager: SnackbarManager,
     private val coroutineScope: CoroutineScope
 ) {
-    
+
     /**
      * StateFlow of the current message to be displayed.
      */
     val currentMessage: StateFlow<SnackbarMessage?> = snackbarManager.messages
-    
+
     /**
      * Dismisses the current message and triggers the next queued message if any.
      */
@@ -32,7 +32,15 @@ internal class SimpleSnapNotifyState(
             snackbarManager.dismissCurrent()
         }
     }
-    
+
+    /**
+     * Dismisses [message] only if it is still the displayed one, so a message that expired
+     * cannot dismiss whichever message replaced it.
+     */
+    suspend fun dismissMessageSuspend(message: SnackbarMessage) {
+        snackbarManager.dismissMessage(message)
+    }
+
     /**
      * Clears all messages from the queue and dismisses any current message.
      */
@@ -45,7 +53,7 @@ internal class SimpleSnapNotifyState(
 
 /**
  * Composable function to remember a SimpleSnapNotifyState instance.
- * 
+ *
  * @param coroutineScope The coroutine scope to use for async operations
  * @return A remembered SimpleSnapNotifyState instance
  */

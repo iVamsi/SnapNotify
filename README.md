@@ -5,8 +5,8 @@
 [![Compose](https://img.shields.io/badge/Compose-Jetpack%20BOM%202026-blue.svg)](https://developer.android.com/develop/ui/compose/bom)
 [![Android](https://img.shields.io/badge/Android-API%2024+-green.svg)](https://android-arsenal.com/api?level=24)
 [![License](https://img.shields.io/badge/License-Apache%202.0-orange.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Maven Central](https://img.shields.io/badge/Maven%20Central-1.0.6-red.svg)](https://central.sonatype.com/artifact/io.github.ivamsi/snapnotify/1.0.6)
-[![Tests](https://img.shields.io/badge/Tests-74%2B%20passing-brightgreen.svg)](#-testing)
+[![Maven Central](https://img.shields.io/badge/Maven%20Central-1.1.0-red.svg)](https://central.sonatype.com/artifact/io.github.ivamsi/snapnotify/1.1.0)
+[![Tests](https://img.shields.io/badge/Tests-97%20passing-brightgreen.svg)](#-testing)
 [![Coverage](https://img.shields.io/badge/Coverage-100%25%20Public%20API-brightgreen.svg)](#-testing)
 
 > A drop-in Snackbar solution for Jetpack Compose that brings back the simplicity of the View system while leveraging modern Compose patterns.
@@ -76,7 +76,7 @@ Add to your `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("io.github.ivamsi:snapnotify:1.0.6")
+    implementation("io.github.ivamsi:snapnotify:1.1.0")
 }
 ```
 
@@ -89,7 +89,7 @@ Release history is in [CHANGELOG.md](CHANGELOG.md).
 
 ## Developing
 
-This repository’s sample app depends on `project(":snapnotify")` so `./gradlew check` works on a clean clone without publishing. To validate the same artifact consumers get from Maven, run `./gradlew :snapnotify:publishToMavenLocal` and point a module to `io.github.ivamsi:snapnotify:1.0.6` with `mavenLocal()` in `dependencyResolutionManagement` (or your module repositories).
+This repository’s sample app depends on `project(":snapnotify")` so `./gradlew check` works on a clean clone without publishing. To validate the same artifact consumers get from Maven, run `./gradlew :snapnotify:publishToMavenLocal` and point a module to `io.github.ivamsi:snapnotify:1.1.0` with `mavenLocal()` in `dependencyResolutionManagement` (or your module repositories).
 
 ## Releasing (maintainers)
 
@@ -201,15 +201,6 @@ SnapNotify.showStyled("10 second custom style", customStyle, durationMillis = 10
 ```
 
 ## 🌟 Key Features
-
-### 🆕 Latest Updates (v1.0.6)
-- **Toolchain**: Android Gradle Plugin 9.1 / Gradle 9.3.1, Kotlin 2.3.20 with [built-in Kotlin in AGP 9](https://developer.android.com/build/migrate-to-built-in-kotlin), updated AndroidX / Compose BOM / Hilt
-- **Queue Configuration**: Configure max queue size and get notified when messages are dropped
-- **Enhanced Keyboard Handling**: Snackbars now automatically avoid IME (keyboard) and work with navigation bars
-- **Provider Flexibility**: New parameters for alignment, insets, and custom host rendering
-- **Architecture Improvements**: Non-blocking mutex, proper dispatcher management, optimized style reuse
-- **Custom Duration Support**: Precise millisecond timing control for all methods
-- **Expanded Test Coverage**: 74+ tests with 100% public API coverage
 
 ### ✅ Flexible Setup
 - Use `SnapNotifyProvider` at any level of your app hierarchy
@@ -509,7 +500,7 @@ SnapNotifyProvider(
 ```
 
 **Queue Management:**
-- When the queue is full, the oldest message is dropped
+- When the queue is full, the lowest-priority oldest message is dropped
 - The `onMessageDropped` callback is invoked with the dropped message text
 - Useful for monitoring queue saturation in production
 - Prevents memory issues from unbounded message accumulation
@@ -553,15 +544,15 @@ object SnapNotify {
     // Configuration
     fun configure(config: SnapNotifyConfig)
 
-    // Basic messages
-    fun show(message: String, duration: SnackbarDuration = SnackbarDuration.Short)
-    fun show(message: String, duration: SnackbarDuration = SnackbarDuration.Short, durationMillis: Long? = null)
+    // Each show/showStyled/showSuccess/showError/showWarning/showInfo comes in four
+    // overloads: with or without an action button, and with or without a priority.
+
     fun show(
         message: String,
-        actionLabel: String,
-        onAction: () -> Unit,
-        duration: SnackbarDuration = SnackbarDuration.Short
+        duration: SnackbarDuration = SnackbarDuration.Short,
+        durationMillis: Long? = null
     )
+
     fun show(
         message: String,
         actionLabel: String,
@@ -570,69 +561,50 @@ object SnapNotify {
         durationMillis: Long? = null
     )
 
-    // Custom styled messages
-    fun showStyled(
+    // Priority-carrying variants. `priority` is required so these stay distinct from the
+    // signatures above; `hapticFeedback` defaults to the theme's own feedback.
+    fun show(
         message: String,
-        style: SnackbarStyle,
-        duration: SnackbarDuration = SnackbarDuration.Short
-    )
-    fun showStyled(
-        message: String,
-        style: SnackbarStyle,
+        priority: SnackbarPriority,
         duration: SnackbarDuration = SnackbarDuration.Short,
-        durationMillis: Long? = null
-    )
-    fun showStyled(
-        message: String,
-        style: SnackbarStyle,
-        actionLabel: String,
-        onAction: () -> Unit,
-        duration: SnackbarDuration = SnackbarDuration.Short
-    )
-    fun showStyled(
-        message: String,
-        style: SnackbarStyle,
-        actionLabel: String,
-        onAction: () -> Unit,
-        duration: SnackbarDuration = SnackbarDuration.Short,
-        durationMillis: Long? = null
+        durationMillis: Long? = null,
+        hapticFeedback: SnackbarHapticFeedback = SnackbarHapticFeedback.None
     )
 
-    // Themed messages (all support durationMillis parameter)
+    fun show(
+        message: String,
+        actionLabel: String,
+        onAction: () -> Unit,
+        priority: SnackbarPriority,
+        duration: SnackbarDuration = SnackbarDuration.Short,
+        durationMillis: Long? = null,
+        hapticFeedback: SnackbarHapticFeedback = SnackbarHapticFeedback.None
+    )
+
+    // showSuccess, showError, showWarning and showInfo follow the same four shapes.
+    // showError and showUrgent are announced assertively to accessibility services.
     fun showSuccess(message: String, duration: SnackbarDuration = SnackbarDuration.Short, durationMillis: Long? = null)
-    fun showSuccess(
-        message: String,
-        actionLabel: String,
-        onAction: () -> Unit,
-        duration: SnackbarDuration = SnackbarDuration.Short,
-        durationMillis: Long? = null
-    )
-
     fun showError(message: String, duration: SnackbarDuration = SnackbarDuration.Short, durationMillis: Long? = null)
-    fun showError(
-        message: String,
-        actionLabel: String,
-        onAction: () -> Unit,
-        duration: SnackbarDuration = SnackbarDuration.Short,
-        durationMillis: Long? = null
-    )
-
     fun showWarning(message: String, duration: SnackbarDuration = SnackbarDuration.Short, durationMillis: Long? = null)
-    fun showWarning(
+    fun showInfo(message: String, duration: SnackbarDuration = SnackbarDuration.Short, durationMillis: Long? = null)
+
+    // showStyled takes the style as its second argument.
+    fun showStyled(
         message: String,
-        actionLabel: String,
-        onAction: () -> Unit,
+        style: SnackbarStyle,
         duration: SnackbarDuration = SnackbarDuration.Short,
         durationMillis: Long? = null
     )
 
-    fun showInfo(message: String, duration: SnackbarDuration = SnackbarDuration.Short, durationMillis: Long? = null)
-    fun showInfo(
+    // Preempts a displaying lower-priority snackbar. The interrupted message goes back on the
+    // queue and resumes afterwards, unless the queue is full and it ranks below everything in it.
+    fun showUrgent(
         message: String,
-        actionLabel: String,
-        onAction: () -> Unit,
+        actionLabel: String? = null,
+        onAction: (() -> Unit)? = null,
         duration: SnackbarDuration = SnackbarDuration.Short,
-        durationMillis: Long? = null
+        durationMillis: Long? = null,
+        style: SnackbarStyle? = null
     )
 
     // Management
@@ -655,13 +627,26 @@ fun SnapNotifyProvider(
 )
 ```
 
-### SnapNotifyConfig Data Class
+### SnapNotifyConfig Class
 
 ```kotlin
-data class SnapNotifyConfig(
-    val maxQueueSize: Int = 50,  // Maximum pending messages
-    val onMessageDropped: ((String) -> Unit)? = null  // Callback when message is dropped
+data class SnapNotifyConfig @JvmOverloads constructor(
+    val maxQueueSize: Int = DEFAULT_MAX_QUEUE_SIZE,                     // Maximum pending messages (default: 50)
+    val onMessageDropped: ((String) -> Unit)? = null,                   // Callback when message is dropped
+    val deduplicationStrategy: DeduplicationStrategy = DeduplicationStrategy.DropDuplicate, // Drop duplicate or replace
+    val isHapticFeedbackEnabled: Boolean = true,                        // Subtle tactile vibrations on display
+    val isAccessibilityScalingEnabled: Boolean = true                   // Automatic 2x+ duration scaling with TalkBack
 )
+```
+
+### Enums
+
+```kotlin
+enum class SnackbarPriority { Low, Normal, High, Urgent }
+
+enum class SnackbarHapticFeedback { Auto, Success, Warning, Error, Gesture, None }
+
+enum class DeduplicationStrategy { None, DropDuplicate, ReplaceExisting }
 ```
 
 ### SnackbarStyle Data Class
@@ -688,7 +673,7 @@ data class SnackbarStyle(
 
 ## 🧪 Testing
 
-SnapNotify includes comprehensive test coverage with **74+ test cases** covering **100% of the public API**:
+SnapNotify includes comprehensive test coverage with **97 unit tests** covering **100% of the public API**:
 
 ### Test Coverage
 - **✅ Public API Methods**: All SnapNotify methods tested
