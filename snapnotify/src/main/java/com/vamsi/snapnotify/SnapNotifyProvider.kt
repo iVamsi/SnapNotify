@@ -1,5 +1,7 @@
 package com.vamsi.snapnotify
 
+import android.content.Context
+import android.view.accessibility.AccessibilityManager
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.WindowInsets
@@ -20,11 +22,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.vamsi.snapnotify.core.SnackbarManager
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.selects.select
+import kotlinx.coroutines.withContext
 
 /**
  * CompositionLocal to track if we're already inside a SnapNotifyProvider.
@@ -39,19 +47,10 @@ internal val LocalSnapNotifyProvider = staticCompositionLocalOf { false }
  * be ignored to prevent duplicate snackbars, and only the outermost provider will
  * handle message display.
  *
- * Usage patterns:
- * - **App-wide**: Place at the root level for global snackbar access
- * - **Screen-level**: Use per screen for screen-specific snackbar placement
- * - **Feature-level**: Wrap feature sections for contextual notifications
- *
- * Note: SnapNotify uses a singleton message queue, so all providers share the same
- * message source. The provider's location determines where snackbars appear visually.
- *
  * @param modifier Modifier to be applied to the container
  * @param style Optional styling configuration for snackbars. If null, uses Material3 defaults
- * @param config Optional configuration for the snackbar queue (max size, drop callback).
- * If provided, this will update the global SnapNotify configuration. For app-wide config,
- * prefer using SnapNotify.configure() instead.
+ * @param config Optional configuration for the snackbar queue (max size, drop callback, deduplication).
+ * If provided, this will update the global SnapNotify configuration.
  * @param hostAlignment Alignment for the snackbar host within the provider's Box
  * @param hostInsets Insets applied to the snackbar host (defaults to navigation + IME)
  * @param hostContent Optional slot to completely override the snackbar host rendering
@@ -81,6 +80,19 @@ fun SnapNotifyProvider(
     val currentMessage = snapNotifyState.currentMessage.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val snackbarStyle = style ?: SnackbarStyle.default()
+    val view = LocalView.current
+    val context = LocalContext.current
+
+    val accessibilityManager = remember(context) {
+        try {
+            context.getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (unavailable: RuntimeException) {
+            null
+        }
+    }
+
     val resolvedHostContent: @Composable BoxScope.(SnackbarHostState, SnackbarStyle) -> Unit =
         hostContent ?: { hostState, currentStyle ->
             SnackbarHost(
@@ -96,81 +108,85 @@ fun SnapNotifyProvider(
             }
         }
 
-    // Initialize SnapNotify and apply config if provided
     LaunchedEffect(config) {
         SnapNotify.initialize()
-        config?.let { SnapNotify.configure(it) }
+        if (config != null) {
+            SnapNotify.configure(config)
+        }
     }
 
-    // Handle message display
-    LaunchedEffect(currentMessage.value) {
-        currentMessage.value?.let { message ->
-            scope.launch {
-                val effectiveDuration = message.effectiveDuration
-                val result: SnackbarResult
+    LaunchedEffect(currentMessage.value?.id) {
+        val message = currentMessage.value ?: return@LaunchedEffect
+        val activeConfig = config ?: SnackbarManager.getInstance().getConfig()
 
-                if (effectiveDuration is SnackbarDurationWrapper.Custom && !effectiveDuration.isIndefinite()) {
-                    // Handle custom duration timing manually
+        if (activeConfig.isHapticFeedbackEnabled) {
+            triggerHapticFeedback(view, message.resolveHapticFeedback())
+        }
+
+        val effectiveDuration = message.effectiveDuration
+        val isIndefinite = effectiveDuration.isIndefinite()
+        val rawDurationMillis = effectiveDuration.getMilliseconds()
+
+        val durationMillis = computeAccessibleDuration(
+            rawDurationMillis = rawDurationMillis,
+            isAccessibilityEnabled = accessibilityManager?.isEnabled == true,
+            isScalingConfigEnabled = activeConfig.isAccessibilityScalingEnabled,
+            recommendedTimeoutMillis = accessibilityManager?.recommendedTimeoutOrNull(
+                rawDurationMillis = rawDurationMillis,
+                hasAction = message.actionLabel != null,
+            ),
+        )
+
+        // Material's host only knows Short/Long, so anything with its own deadline — a custom
+        // duration, or a standard one stretched for accessibility — is held open and timed here.
+        val hasOwnDeadline = !isIndefinite &&
+            (effectiveDuration is SnackbarDurationWrapper.Custom || durationMillis != rawDurationMillis)
+
+        val visualsDuration = if (hasOwnDeadline || isIndefinite) {
+            SnackbarDuration.Indefinite
+        } else {
+            effectiveDuration.getStandardDuration() ?: SnackbarDuration.Short
+        }
+
+        val visuals = SnapNotifyVisuals(
+            message = message.text,
+            actionLabel = message.actionLabel,
+            duration = visualsDuration,
+            style = message.style ?: snackbarStyle,
+            isAssertive = message.isAssertiveAccessibility,
+        )
+
+        try {
+            val result = if (hasOwnDeadline) {
+                coroutineScope {
                     val snackbarDeferred = async {
-                        snackbarHostState.showSnackbar(
-                            message = message.text,
-                            actionLabel = message.actionLabel,
-                            duration = SnackbarDuration.Indefinite
-                        )
+                        snackbarHostState.showSnackbar(visuals)
                     }
-
-                    val timeoutDeferred = async {
-                        delay(effectiveDuration.getMilliseconds())
-                        SnackbarResult.Dismissed // Timeout
+                    val timeoutJob = launch {
+                        delay(durationMillis)
+                        snackbarHostState.currentSnackbarData?.dismiss()
                     }
-
-                    // Wait for either user action or timeout
-                    result = select {
-                        snackbarDeferred.onAwait { snackbarResult ->
-                            timeoutDeferred.cancel() // Cancel timeout since user acted
-                            snackbarResult
-                        }
-                        timeoutDeferred.onAwait { timeoutResult ->
-                            snackbarHostState.currentSnackbarData?.dismiss() // Dismiss the snackbar
-                            snackbarDeferred.cancel() // Cancel snackbar coroutine
-                            timeoutResult
-                        }
-                    }
-                } else {
-                    // Use standard duration for Material Design durations or indefinite custom durations  
-                    val standardDuration = effectiveDuration.getStandardDuration()
-                        ?: if (effectiveDuration.isIndefinite()) SnackbarDuration.Indefinite
-                        else SnackbarDuration.Short
-
-                    result = snackbarHostState.showSnackbar(
-                        message = message.text,
-                        actionLabel = message.actionLabel,
-                        duration = standardDuration
-                    )
+                    val res = snackbarDeferred.await()
+                    timeoutJob.cancel()
+                    res
                 }
+            } else {
+                snackbarHostState.showSnackbar(visuals)
+            }
 
-                // Handle action result
-                when (result) {
-                    SnackbarResult.ActionPerformed -> {
-                        message.onAction?.invoke()
-                    }
-
-                    SnackbarResult.Dismissed -> {
-                        // Message was dismissed (timeout or swipe)
-                    }
-                }
-
-                // Dismiss current message and show next one if queued
-                snapNotifyState.dismissCurrent()
+            if (result == SnackbarResult.ActionPerformed) {
+                message.onAction?.invoke()
+            }
+        } finally {
+            withContext(NonCancellable) {
+                snapNotifyState.dismissMessageSuspend(message)
             }
         }
     }
 
     CompositionLocalProvider(LocalSnapNotifyProvider provides true) {
         Box(modifier = modifier.fillMaxSize()) {
-            // Content renders edge-to-edge without any padding
             content()
-
             val messageStyle = currentMessage.value?.style ?: snackbarStyle
             resolvedHostContent(snackbarHostState, messageStyle)
         }
