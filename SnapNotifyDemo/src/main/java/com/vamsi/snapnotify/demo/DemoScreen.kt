@@ -21,12 +21,15 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.vamsi.snapnotify.DeduplicationStrategy
 import com.vamsi.snapnotify.NotificationPlacement
+import com.vamsi.snapnotify.SnapNotifyConfig
 import com.vamsi.snapnotify.SnapNotify
 import com.vamsi.snapnotify.SnackbarHapticFeedback
 import com.vamsi.snapnotify.SnackbarPriority
@@ -44,6 +47,14 @@ fun DemoScreen(
     onPlacementSelected: (NotificationPlacement) -> Unit = {},
 ) {
     var counter by remember { mutableIntStateOf(0) }
+    var droppedCount by remember { mutableIntStateOf(0) }
+    var config by remember {
+        mutableStateOf(SnapNotifyConfig(onMessageDropped = { droppedCount++ }))
+    }
+    fun applyConfig(newConfig: SnapNotifyConfig) {
+        config = newConfig
+        SnapNotify.configure(newConfig)
+    }
 
     // Pre-define styles to avoid @Composable issues in onClick
     val purpleStyle = SnackbarStyle(
@@ -327,6 +338,49 @@ fun DemoScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            Text("v1.1.0 Configuration")
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(onClick = {
+                val strategies = DeduplicationStrategy.entries
+                val next = strategies[(strategies.indexOf(config.deduplicationStrategy) + 1) % strategies.size]
+                applyConfig(config.copy(deduplicationStrategy = next))
+            }) {
+                Text("Deduplication: ${config.deduplicationStrategy}")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(onClick = {
+                applyConfig(config.copy(isHapticFeedbackEnabled = !config.isHapticFeedbackEnabled))
+            }) {
+                Text("Haptics: ${if (config.isHapticFeedbackEnabled) "On" else "Off"}")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(onClick = {
+                applyConfig(config.copy(maxQueueSize = 3))
+                repeat(6) { index -> SnapNotify.show("Overflow message ${index + 1}") }
+            }) {
+                Text("Overflow a 3-slot queue (dropped: $droppedCount)")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(onClick = {
+                SnapNotify.show(
+                    message = "Gesture haptic on a high priority message",
+                    priority = SnackbarPriority.High,
+                    hapticFeedback = SnackbarHapticFeedback.Gesture,
+                )
+            }) {
+                Text("Gesture Haptic")
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
             Text("v1.2.0 Features (Rich snackbars)")
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -357,6 +411,19 @@ fun DemoScreen(
                 )
             }) {
                 Text("Undo with countdown")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(onClick = {
+                SnapNotify.show(
+                    message = "Syncing in the background. Press and hold to pause.",
+                    durationMillis = 8000L,
+                    showProgressBar = true,
+                    onTimeout = { SnapNotify.show("Countdown finished") },
+                )
+            }) {
+                Text("Countdown bar")
             }
 
             Spacer(modifier = Modifier.height(16.dp))
