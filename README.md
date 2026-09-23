@@ -5,8 +5,8 @@
 [![Compose](https://img.shields.io/badge/Compose-Jetpack%20BOM%202026-blue.svg)](https://developer.android.com/develop/ui/compose/bom)
 [![Android](https://img.shields.io/badge/Android-API%2024+-green.svg)](https://android-arsenal.com/api?level=24)
 [![License](https://img.shields.io/badge/License-Apache%202.0-orange.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Maven Central](https://img.shields.io/badge/Maven%20Central-1.1.0-red.svg)](https://central.sonatype.com/artifact/io.github.ivamsi/snapnotify/1.1.0)
-[![Tests](https://img.shields.io/badge/Tests-97%20passing-brightgreen.svg)](#-testing)
+[![Maven Central](https://img.shields.io/badge/Maven%20Central-1.2.0-red.svg)](https://central.sonatype.com/artifact/io.github.ivamsi/snapnotify/1.2.0)
+[![Tests](https://img.shields.io/badge/Tests-109%20passing-brightgreen.svg)](#-testing)
 [![Coverage](https://img.shields.io/badge/Coverage-100%25%20Public%20API-brightgreen.svg)](#-testing)
 
 > A drop-in Snackbar solution for Jetpack Compose that brings back the simplicity of the View system while leveraging modern Compose patterns.
@@ -76,7 +76,7 @@ Add to your `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("io.github.ivamsi:snapnotify:1.1.0")
+    implementation("io.github.ivamsi:snapnotify:1.2.0")
 }
 ```
 
@@ -89,7 +89,7 @@ Release history is in [CHANGELOG.md](CHANGELOG.md).
 
 ## Developing
 
-This repository’s sample app depends on `project(":snapnotify")` so `./gradlew check` works on a clean clone without publishing. To validate the same artifact consumers get from Maven, run `./gradlew :snapnotify:publishToMavenLocal` and point a module to `io.github.ivamsi:snapnotify:1.1.0` with `mavenLocal()` in `dependencyResolutionManagement` (or your module repositories).
+This repository’s sample app depends on `project(":snapnotify")` so `./gradlew check` works on a clean clone without publishing. To validate the same artifact consumers get from Maven, run `./gradlew :snapnotify:publishToMavenLocal` and point a module to `io.github.ivamsi:snapnotify:1.2.0` with `mavenLocal()` in `dependencyResolutionManagement` (or your module repositories).
 
 ## Releasing (maintainers)
 
@@ -514,6 +514,7 @@ SnapNotifyProvider(
     config = SnapNotifyConfig(maxQueueSize = 50),  // Queue configuration
     hostAlignment = Alignment.TopCenter,  // Position snackbars at top
     hostInsets = WindowInsets.statusBars,  // Custom insets
+    placement = NotificationPlacement.TopPill(),  // Or TopBanner / BottomSnackbar
     hostContent = { hostState, style ->  // Complete customization
         // Custom snackbar host rendering
         SnackbarHost(hostState) { data ->
@@ -526,10 +527,40 @@ SnapNotifyProvider(
 ```
 
 **Key Features:**
-- **hostAlignment**: Position snackbars anywhere (Top, Bottom, Center)
-- **hostInsets**: Control padding for system bars and keyboard (IME)
-- **hostContent**: Complete control over snackbar rendering
+- **hostAlignment**: Position snackbars anywhere (Top, Bottom, Center) when placement is `BottomSnackbar`
+- **hostInsets**: Control padding for system bars and keyboard (IME) on the bottom host
+- **placement**: `BottomSnackbar` (default), `TopPill`, or `TopBanner`
+- **hostContent**: Complete control over snackbar rendering. When set, `placement` is not applied.
 - **config**: Feature-scoped queue configuration
+
+### Rich snackbars and undo
+
+```kotlin
+SnapNotify.show(
+    title = "File uploaded",
+    message = "Report_Q3.pdf saved to Cloud Drive",
+    leadingIcon = Icons.Filled.CloudDone, // ImageVector from your app
+    actionLabel = "View",
+    onAction = { openFile() },
+    showCloseButton = true,
+    hapticFeedback = SnackbarHapticFeedback.Success
+)
+
+SnapNotify.showUndoable(
+    message = "Item moved to trash",
+    durationMillis = 5000L,
+    onAction = { restoreItem() },
+    onTimeout = { permanentlyDelete() }
+)
+
+SnapNotifyProvider(placement = NotificationPlacement.TopPill()) {
+    AppContent()
+}
+```
+
+`showUndoable` draws a bar that counts down from full to empty. Pressing the snackbar pauses that countdown. `onTimeout` runs when the timer finishes. The close control and the action do not run `onTimeout`.
+
+`title`, `leadingIcon`, `showCloseButton`, `showProgressBar`, and `onTimeout` are on `show`, with or without an action. `showUndoable` also takes a `style`.
 
 ### Hilt Integration (Optional)
 
@@ -609,6 +640,15 @@ object SnapNotify {
 
     // Management
     fun clearAll()
+
+    fun showUndoable(
+        message: String,
+        onAction: () -> Unit,
+        actionLabel: String = "Undo",
+        durationMillis: Long = 5000L,
+        showProgressBar: Boolean = true,
+        onTimeout: (() -> Unit)? = null
+    )
 }
 ```
 
@@ -623,6 +663,7 @@ fun SnapNotifyProvider(
     hostAlignment: Alignment = Alignment.BottomCenter,
     hostInsets: WindowInsets = WindowInsets.navigationBars.union(WindowInsets.ime),
     hostContent: (@Composable BoxScope.(SnackbarHostState, SnackbarStyle) -> Unit)? = null,
+    placement: NotificationPlacement = NotificationPlacement.BottomSnackbar,
     content: @Composable () -> Unit
 )
 ```
@@ -647,6 +688,12 @@ enum class SnackbarPriority { Low, Normal, High, Urgent }
 enum class SnackbarHapticFeedback { Auto, Success, Warning, Error, Gesture, None }
 
 enum class DeduplicationStrategy { None, DropDuplicate, ReplaceExisting }
+
+sealed interface NotificationPlacement {
+    data object BottomSnackbar : NotificationPlacement
+    data class TopPill(val topInsetPadding: WindowInsets? = null) : NotificationPlacement
+    data class TopBanner(val topInsetPadding: WindowInsets? = null) : NotificationPlacement
+}
 ```
 
 ### SnackbarStyle Data Class
@@ -673,7 +720,7 @@ data class SnackbarStyle(
 
 ## 🧪 Testing
 
-SnapNotify includes comprehensive test coverage with **97 unit tests** covering **100% of the public API**:
+SnapNotify includes **105 unit tests**. They cover the queue, deduplication, the countdown clock, placement, and the public `show` methods.
 
 ### Test Coverage
 - **✅ Public API Methods**: All SnapNotify methods tested

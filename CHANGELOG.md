@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.2.0] - 2026-09-22
+
+### Added
+
+- **Rich snackbar**: `title`, `leadingIcon`, and `showCloseButton` on `show`, with or without an action. Pass `hapticFeedback` for typed feedback. A title is a headline above the message. The close control dismisses without running the action.
+- **Undo countdown**: `SnapNotify.showUndoable(...)` shows an action (default label "Undo") and a bar that counts down from full to empty. Pressing the snackbar pauses the countdown. `onTimeout` runs when the timer finishes. An action click or a dismiss does not run `onTimeout`.
+- **Placement**: `SnapNotifyProvider(placement = ...)` accepts `NotificationPlacement.BottomSnackbar` (unchanged default), `TopPill`, and `TopBanner`. Top placements slide in from the top with a spring. `TopPill` uses a pill shape. `TopBanner` spans the width. Pass `topInsetPadding` to override the status-bar inset.
+
+### Compatibility
+
+Source- and binary-compatible with 1.1.0. Existing calls keep their behavior, and code compiled against 1.1.0 links without a rebuild. A custom `hostContent` still owns layout, and `placement` applies to the default host only.
+
 ## [1.1.0] - 2026-09-02
 
 ### Added
@@ -38,5 +50,6 @@ two-property `copy`, and destructuring signatures while adding the v1.1 configur
 - Kotlin **2.3.20**, Jetpack Compose BOM **2026.03.01**, AndroidX (core-ktx 1.18.0, lifecycle 2.10.0, activity-compose 1.13.0), Hilt **2.59.2**, AppCompat **1.7.1**, Gradle Maven Publish plugin **0.36.0**.
 - README badges and maintainer-facing docs for developing and releasing.
 
+[1.2.0]: https://github.com/iVamsi/SnapNotify/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/iVamsi/SnapNotify/compare/v1.0.6...v1.1.0
 [1.0.6]: https://github.com/iVamsi/SnapNotify/compare/v1.0.5...v1.0.6

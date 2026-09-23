@@ -1,6 +1,7 @@
 package com.vamsi.snapnotify.core
 
 import androidx.compose.material3.SnackbarDuration
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.vamsi.snapnotify.SnackbarDurationWrapper
 import com.vamsi.snapnotify.SnackbarHapticFeedback
 import com.vamsi.snapnotify.SnackbarPriority
@@ -20,6 +21,12 @@ import java.util.UUID
  * @param priority Message priority ([SnackbarPriority.Low], [SnackbarPriority.Normal], [SnackbarPriority.High], [SnackbarPriority.Urgent])
  * @param hapticFeedback Haptic feedback preference for when the message displays
  * @param isAssertive Whether this message should be announced assertively by accessibility services
+ * @param title Optional headline shown above [text]
+ * @param leadingIcon Optional icon shown before the text
+ * @param leadingIconContentDescription Accessibility label for [leadingIcon]. Null leaves the icon decorative.
+ * @param showCloseButton Whether the snackbar draws a trailing dismiss control
+ * @param showProgressBar Whether the snackbar draws a countdown bar and pauses that countdown while pressed
+ * @param onTimeout Called when the library timer dismisses the snackbar. Not called for action clicks or manual dismiss.
  * @param sequenceNumber Monotonically increasing sequence number for deterministic FIFO ordering within same priority
  */
 internal data class SnackbarMessage(
@@ -33,6 +40,12 @@ internal data class SnackbarMessage(
     val priority: SnackbarPriority = SnackbarPriority.Normal,
     val hapticFeedback: SnackbarHapticFeedback = SnackbarHapticFeedback.None,
     val isAssertive: Boolean = false,
+    val title: String? = null,
+    val leadingIcon: ImageVector? = null,
+    val leadingIconContentDescription: String? = null,
+    val showCloseButton: Boolean = false,
+    val showProgressBar: Boolean = false,
+    val onTimeout: (() -> Unit)? = null,
     val sequenceNumber: Long = 0L,
 ) {
     /**

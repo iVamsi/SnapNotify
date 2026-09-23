@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
@@ -24,7 +26,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.vamsi.snapnotify.NotificationPlacement
 import com.vamsi.snapnotify.SnapNotify
+import com.vamsi.snapnotify.SnackbarHapticFeedback
 import com.vamsi.snapnotify.SnackbarPriority
 import com.vamsi.snapnotify.SnackbarStyle
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,7 +40,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DemoScreen(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onPlacementSelected: (NotificationPlacement) -> Unit = {},
 ) {
     var counter by remember { mutableIntStateOf(0) }
 
@@ -318,6 +323,58 @@ fun DemoScreen(
                 SnapNotify.show("Identical duplicate notification")
             }) {
                 Text("Test Deduplication (Tap repeatedly)")
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Text("v1.2.0 Features (Rich snackbars)")
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(onClick = {
+                SnapNotify.show(
+                    title = "File uploaded",
+                    message = "Report_Q3.pdf saved to Cloud Drive",
+                    leadingIcon = Icons.Filled.Done,
+                    leadingIconContentDescription = "Uploaded",
+                    actionLabel = "View",
+                    onAction = { SnapNotify.show("Opening file") },
+                    showCloseButton = true,
+                    hapticFeedback = SnackbarHapticFeedback.Success,
+                )
+            }) {
+                Text("Rich snackbar")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(onClick = {
+                SnapNotify.showUndoable(
+                    message = "Item moved to trash",
+                    durationMillis = 5000L,
+                    onAction = { SnapNotify.show("Item restored") },
+                    onTimeout = { SnapNotify.show("Item deleted") },
+                )
+            }) {
+                Text("Undo with countdown")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(onClick = { onPlacementSelected(NotificationPlacement.BottomSnackbar) }) {
+                Text("Place at bottom")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(onClick = { onPlacementSelected(NotificationPlacement.TopPill()) }) {
+                Text("Place as top pill")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(onClick = { onPlacementSelected(NotificationPlacement.TopBanner()) }) {
+                Text("Place as top banner")
             }
         }
     }

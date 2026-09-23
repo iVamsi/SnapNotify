@@ -13,8 +13,8 @@ android {
         applicationId = "com.vamsi.snapnotify.demo"
         minSdk = 24
         targetSdk = 36
-        versionCode = 7
-        versionName = "1.1.0"
+        versionCode = 8
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -50,6 +50,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.material.icons.core)
     implementation(libs.androidx.appcompat)
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
