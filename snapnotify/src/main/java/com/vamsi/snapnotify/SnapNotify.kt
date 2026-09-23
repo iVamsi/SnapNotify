@@ -2,6 +2,7 @@ package com.vamsi.snapnotify
 
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.vamsi.snapnotify.core.SnackbarManager
 import com.vamsi.snapnotify.core.SnackbarMessage
 
@@ -18,6 +19,15 @@ import com.vamsi.snapnotify.core.SnackbarMessage
  * SnapNotify.showSuccess("Saved!")
  * SnapNotify.showUrgent("Connection lost! Immediate action needed.")
  * SnapNotify.showStyled("Custom!", SnackbarStyle.success())
+ * SnapNotify.show(
+ *     title = "File uploaded",
+ *     message = "Report_Q3.pdf saved to Cloud Drive",
+ *     leadingIcon = leadingIcon,
+ *     actionLabel = "View",
+ *     onAction = { openFile() },
+ *     showCloseButton = true,
+ * )
+ * SnapNotify.showUndoable(message = "Item moved to trash", onAction = { restoreItem() })
  * ```
  */
 object SnapNotify {
@@ -76,6 +86,12 @@ object SnapNotify {
         priority: SnackbarPriority = SnackbarPriority.Normal,
         hapticFeedback: SnackbarHapticFeedback = SnackbarHapticFeedback.None,
         isAssertive: Boolean = false,
+        title: String? = null,
+        leadingIcon: ImageVector? = null,
+        leadingIconContentDescription: String? = null,
+        showCloseButton: Boolean = false,
+        showProgressBar: Boolean = false,
+        onTimeout: (() -> Unit)? = null,
     ) {
         val customDuration = durationMillis?.let { SnackbarDurationWrapper.fromMillis(it) }
         val snackbarMessage = SnackbarMessage(
@@ -88,6 +104,12 @@ object SnapNotify {
             priority = priority,
             hapticFeedback = hapticFeedback,
             isAssertive = isAssertive,
+            title = title?.takeIf { it.isNotBlank() },
+            leadingIcon = leadingIcon,
+            leadingIconContentDescription = leadingIconContentDescription?.takeIf { it.isNotBlank() },
+            showCloseButton = showCloseButton,
+            showProgressBar = showProgressBar,
+            onTimeout = onTimeout,
         )
         snackbarManager.showMessage(snackbarMessage)
     }
@@ -101,13 +123,35 @@ object SnapNotify {
      * @param message The text to display
      * @param duration How long the snackbar should be displayed
      * @param durationMillis Custom duration in milliseconds. If provided, overrides duration parameter.
+     * @param title Optional headline shown above [message]
+     * @param leadingIcon Optional icon drawn before the text. Supply an [ImageVector] from your app.
+     * @param leadingIconContentDescription Accessibility label for [leadingIcon]. Omit it for a decorative icon.
+     * @param showCloseButton Draws a trailing dismiss control when true
+     * @param showProgressBar Draws a countdown bar. Pressing the snackbar pauses that countdown.
+     * @param onTimeout Called when the library timer dismisses the snackbar
      */
     fun show(
         message: String,
         duration: SnackbarDuration = SnackbarDuration.Short,
         durationMillis: Long? = null,
+        title: String? = null,
+        leadingIcon: ImageVector? = null,
+        leadingIconContentDescription: String? = null,
+        showCloseButton: Boolean = false,
+        showProgressBar: Boolean = false,
+        onTimeout: (() -> Unit)? = null,
     ) {
-        dispatch(message = message, duration = duration, durationMillis = durationMillis)
+        dispatch(
+            message = message,
+            duration = duration,
+            durationMillis = durationMillis,
+            title = title,
+            leadingIcon = leadingIcon,
+            leadingIconContentDescription = leadingIconContentDescription,
+            showCloseButton = showCloseButton,
+            showProgressBar = showProgressBar,
+            onTimeout = onTimeout,
+        )
     }
     
     /**
@@ -121,6 +165,13 @@ object SnapNotify {
      * @param onAction The action to execute when the action button is pressed
      * @param duration How long the snackbar should be displayed
      * @param durationMillis Custom duration in milliseconds. If provided, overrides duration parameter.
+     * @param title Optional headline shown above [message]
+     * @param leadingIcon Optional icon drawn before the text
+     * @param leadingIconContentDescription Accessibility label for [leadingIcon]
+     * @param showCloseButton Draws a trailing dismiss control when true
+     * @param hapticFeedback Haptic feedback to fire when the message displays
+     * @param showProgressBar Draws a countdown bar. Pressing the snackbar pauses that countdown.
+     * @param onTimeout Called when the library timer dismisses the snackbar
      */
     fun show(
         message: String,
@@ -128,6 +179,13 @@ object SnapNotify {
         onAction: () -> Unit,
         duration: SnackbarDuration = SnackbarDuration.Short,
         durationMillis: Long? = null,
+        title: String? = null,
+        leadingIcon: ImageVector? = null,
+        leadingIconContentDescription: String? = null,
+        showCloseButton: Boolean = false,
+        hapticFeedback: SnackbarHapticFeedback = SnackbarHapticFeedback.None,
+        showProgressBar: Boolean = false,
+        onTimeout: (() -> Unit)? = null,
     ) {
         dispatch(
             message = message,
@@ -135,8 +193,39 @@ object SnapNotify {
             onAction = onAction,
             duration = duration,
             durationMillis = durationMillis,
+            title = title,
+            leadingIcon = leadingIcon,
+            leadingIconContentDescription = leadingIconContentDescription,
+            showCloseButton = showCloseButton,
+            hapticFeedback = hapticFeedback,
+            showProgressBar = showProgressBar,
+            onTimeout = onTimeout,
         )
     }
+
+    // Keep the v1.1.0 JVM signatures so callers compiled against it still link.
+    @Deprecated("Binary compatibility only", level = DeprecationLevel.HIDDEN)
+    fun show(
+        message: String,
+        duration: SnackbarDuration = SnackbarDuration.Short,
+        durationMillis: Long? = null,
+    ) = show(message = message, duration = duration, durationMillis = durationMillis, title = null)
+
+    @Deprecated("Binary compatibility only", level = DeprecationLevel.HIDDEN)
+    fun show(
+        message: String,
+        actionLabel: String,
+        onAction: () -> Unit,
+        duration: SnackbarDuration = SnackbarDuration.Short,
+        durationMillis: Long? = null,
+    ) = show(
+        message = message,
+        actionLabel = actionLabel,
+        onAction = onAction,
+        duration = duration,
+        durationMillis = durationMillis,
+        title = null,
+    )
     
     /**
      * Shows a snackbar message with custom styling.
@@ -828,7 +917,53 @@ object SnapNotify {
             isAssertive = true,
         )
     }
-    
+
+    /**
+     * Shows a snackbar with an action and a countdown bar.
+     *
+     * The bar runs from full to empty over [durationMillis]. Pressing the snackbar pauses it.
+     * [onAction] runs when the action is pressed. [onTimeout] runs only when the countdown
+     * finishes. Dismissing the snackbar does not call [onTimeout].
+     *
+     * @param message The text to display
+     * @param onAction The action to execute when the action button is pressed
+     * @param actionLabel The label for the action button. Defaults to "Undo"
+     * @param durationMillis How long the countdown lasts. Defaults to 5 seconds
+     * @param showProgressBar Draws the countdown bar when true
+     * @param onTimeout Called when the countdown finishes
+     */
+    fun showUndoable(
+        message: String,
+        onAction: () -> Unit,
+        actionLabel: String = "Undo",
+        durationMillis: Long = 5_000L,
+        showProgressBar: Boolean = true,
+        onTimeout: (() -> Unit)? = null,
+        title: String? = null,
+        leadingIcon: ImageVector? = null,
+        leadingIconContentDescription: String? = null,
+        showCloseButton: Boolean = false,
+        style: SnackbarStyle? = null,
+        priority: SnackbarPriority = SnackbarPriority.Normal,
+        hapticFeedback: SnackbarHapticFeedback = SnackbarHapticFeedback.Gesture,
+    ) {
+        dispatch(
+            message = message,
+            durationMillis = durationMillis,
+            actionLabel = actionLabel,
+            onAction = onAction,
+            style = style,
+            priority = priority,
+            hapticFeedback = hapticFeedback,
+            title = title,
+            leadingIcon = leadingIcon,
+            leadingIconContentDescription = leadingIconContentDescription,
+            showCloseButton = showCloseButton,
+            showProgressBar = showProgressBar,
+            onTimeout = onTimeout,
+        )
+    }
+
     /**
      * Clears all queued snackbar messages and dismisses any currently displayed message.
      */

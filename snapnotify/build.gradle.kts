@@ -44,6 +44,7 @@ dependencies {
     api(libs.androidx.ui)
     api(libs.androidx.ui.graphics)
     api(libs.androidx.material3)
+    implementation(libs.androidx.material.icons.core)
 
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
@@ -78,7 +79,7 @@ mavenPublishing {
     publishToMavenCentral(automaticRelease = true)
     signAllPublications()
     
-    coordinates("io.github.ivamsi", "snapnotify", "1.1.0")
+    coordinates("io.github.ivamsi", "snapnotify", "1.2.0")
 
     pom {
         name.set("SnapNotify")

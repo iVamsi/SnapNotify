@@ -12,13 +12,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vamsi.snapnotify.core.SnackbarManager
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -153,6 +156,57 @@ class SnapNotifyComposeInstrumentationTest {
         assertTrue(
             "Snackbar should move up when IME inset expands: raised ${raisedBounds.bottom} < initial ${initialBounds.bottom}",
             raisedBounds.bottom < initialBounds.bottom
+        )
+    }
+
+    @Test
+    fun rich_snackbar_shows_title_and_dismisses_from_close_without_timeout() {
+        var timedOut = false
+
+        composeTestRule.setContent {
+            SnapNotifyProvider {
+                Text("App Content")
+            }
+        }
+
+        SnapNotify.show(
+            message = "Body copy",
+            title = "Headline",
+            actionLabel = "View",
+            onAction = {},
+            showCloseButton = true,
+            durationMillis = 30_000L,
+            onTimeout = { timedOut = true },
+        )
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText("Headline").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Body copy").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("Dismiss").performClick()
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithText("Headline").assertDoesNotExist()
+        assertFalse(timedOut)
+    }
+
+    @Test
+    fun top_pill_anchors_the_snackbar_above_the_bottom_host() {
+        composeTestRule.setContent {
+            Box(modifier = Modifier.fillMaxSize()) {
+                SnapNotifyProvider(placement = NotificationPlacement.TopPill()) {
+                    Text("App Content")
+                }
+            }
+        }
+
+        SnapNotify.show("Top pill message")
+        composeTestRule.waitForIdle()
+
+        val bounds = composeTestRule.onNodeWithText("Top pill message").getBoundsInRoot()
+        val root = composeTestRule.onRoot().getBoundsInRoot()
+        assertTrue(
+            "Top pill should sit in the upper half: top ${bounds.top}, root ${root.bottom}",
+            bounds.top < (root.bottom - root.top) / 2,
         )
     }
 }
