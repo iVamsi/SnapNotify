@@ -32,10 +32,8 @@ The workflow uses the checked-in dependency catalog and Gradle wrapper with Java
 
 The repository currently declares AGP 9.4.0, Compose compiler plugin 2.4.20, Compose BOM 2026.09.00, and compile SDK 37. Published dependencies may impose additional version constraints. Record resolved versions when investigating a failure.
 
-These checks do not install or launch the application, test runtime reflection, verify snackbar behavior on devices, or establish accessibility correctness. Release runtime tests and a wider version matrix remain separate work.
+These checks cover build-time assembly only. They do not install or launch the application, verify runtime reflection or snackbar behavior on devices, establish accessibility correctness, or test cross-version compatibility.
 
 ## Maintaining the checks
 
 When releasing a new version, update the Maven coordinate in `scripts/consumer-smoke.init.gradle` and this document after the artifact is available. Do not silently fall back to project source if artifact resolution fails. Review R8 diagnostics uploaded by release jobs when shrinking fails.
-
-This validation setup must pass CI before any new compatibility claim is added to the README.

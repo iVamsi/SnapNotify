@@ -136,7 +136,7 @@ The queue is bounded. When full, the lowest-priority oldest message is dropped; 
 - Keep a provider in the composition wherever notifications must be displayed.
 - Notifications use shared singleton state. Review placement and queue-clearing behavior when integrating multiple providers or navigation destinations.
 - Custom host rendering is available through `hostContent`; when supplied, the normal `placement` rendering is not applied.
-- Repository toolchain badges and build configuration are not a tested consumer compatibility matrix. Validate the published artifact against your application's Kotlin and Compose versions before rollout.
+- Validate the published artifact against your application's Kotlin and Compose versions before rollout. The repository build configuration does not establish compatibility with every consumer toolchain.
 
 ## Try the sample
 
@@ -164,7 +164,7 @@ See [CHANGELOG.md](CHANGELOG.md) for release history. Pin an explicit dependency
 ./gradlew check
 ```
 
-Tests cover the queue, deduplication, countdown behavior, placement, and public show methods. Run the tasks to obtain current results rather than relying on a fixed test-count badge.
+Tests cover the queue, deduplication, countdown behavior, placement, and public show methods. Run the tasks to obtain current test results.
 
 To validate a locally published artifact, run `./gradlew :snapnotify:publishToMavenLocal` and configure a separate consumer module with `mavenLocal()` and `io.github.ivamsi:snapnotify:1.2.0`. This does not verify the artifact hosted on Maven Central.
 
