@@ -1,775 +1,183 @@
 # SnapNotify
 
 [![Android Weekly](https://androidweekly.net/issues/issue-692/badge)](https://androidweekly.net/issues/issue-692)
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.3+-purple.svg)](https://kotlinlang.org)
-[![Compose](https://img.shields.io/badge/Compose-Jetpack%20BOM%202026-blue.svg)](https://developer.android.com/develop/ui/compose/bom)
-[![Android](https://img.shields.io/badge/Android-API%2024+-green.svg)](https://android-arsenal.com/api?level=24)
-[![License](https://img.shields.io/badge/License-Apache%202.0-orange.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Maven Central](https://img.shields.io/badge/Maven%20Central-1.2.0-red.svg)](https://central.sonatype.com/artifact/io.github.ivamsi/snapnotify/1.2.0)
-[![Tests](https://img.shields.io/badge/Tests-109%20passing-brightgreen.svg)](#-testing)
-[![Coverage](https://img.shields.io/badge/Coverage-100%25%20Public%20API-brightgreen.svg)](#-testing)
+[![License](https://img.shields.io/badge/License-Apache%202.0-orange.svg)](https://opensource.org/licenses/Apache-2.0)
 
-> A drop-in Snackbar solution for Jetpack Compose that brings back the simplicity of the View system while leveraging modern Compose patterns.
+Show Jetpack Compose snackbars from Composables or ViewModels without passing SnackbarHostState through your application. SnapNotify provides a shared message queue, semantic styling, action callbacks, and optional top notifications.
 
-## 🎬 Demo
+![SnapNotify demo](demo.gif)
 
-<div align="center">
+## Installation
 
-![SnapNotify Demo](demo.gif)
-
-*SnapNotify in action: Simple messages, themed styling, custom designs, and queue management*
-
-</div>
-
-## 🚀 The Problem
-
-Jetpack Compose's built-in Snackbar system requires significant boilerplate:
-- Manual `SnackbarHostState` management
-- Passing `CoroutineScope` everywhere 
-- Complex setup in every screen
-- Thread-safety concerns when calling from background threads
-- Cumbersome queue management for multiple messages
+Ensure Maven Central is available in your project's dependency repositories:
 
 ```kotlin
-// Traditional Compose approach - lots of boilerplate 😔
-@Composable
-fun MyScreen() {
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
-    
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) {
-        // Your content
-        Button(
-            onClick = {
-                scope.launch {
-                    snackbarHostState.showSnackbar("Message")
-                }
-            }
-        ) {
-            Text("Show Snackbar")
-        }
+// settings.gradle.kts
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
     }
 }
 ```
 
-## ✨ The Solution
-
-SnapNotify eliminates all the boilerplate with a clean, thread-safe API:
+Add the library to your application module:
 
 ```kotlin
-// SnapNotify approach - zero ceremony! 🎉
-@Composable
-fun MyScreen() {
-    Button(
-        onClick = { SnapNotify.show("Message") }
-    ) {
-        Text("Show Snackbar")
-    }
-}
-```
-
-## 🛠 Installation
-
-Add to your `build.gradle.kts`:
-
-```kotlin
+// app/build.gradle.kts
 dependencies {
     implementation("io.github.ivamsi:snapnotify:1.2.0")
 }
 ```
 
-**Hilt Integration (Optional):**
-SnapNotify works with or without Hilt! If you use Hilt, no additional setup needed.
+## Quick start
 
-## Changelog
+Add a provider around your Compose content, then call `SnapNotify.show`. The provider is required; a show call alone does not install a host. The following example uses Material 3 components inside your existing application theme:
 
-Release history is in [CHANGELOG.md](CHANGELOG.md).
-
-## Developing
-
-This repository’s sample app depends on `project(":snapnotify")` so `./gradlew check` works on a clean clone without publishing. To validate the same artifact consumers get from Maven, run `./gradlew :snapnotify:publishToMavenLocal` and point a module to `io.github.ivamsi:snapnotify:1.2.0` with `mavenLocal()` in `dependencyResolutionManagement` (or your module repositories).
-
-## Releasing (maintainers)
-
-1. Bump the library version in `snapnotify/build.gradle.kts` (`mavenPublishing { coordinates(...) }`), demo `versionCode` / `versionName`, [CHANGELOG.md](CHANGELOG.md), and the installation/coordinates snippets in this README.
-2. Run `./gradlew check`.
-3. Commit, create an annotated tag `vX.Y.Z`, and push the branch and tag to GitHub.
-4. Publish to Maven Central: `./gradlew :snapnotify:publishAndReleaseToMavenCentral` with [Central Portal credentials and signing](https://vanniktech.github.io/gradle-maven-publish-plugin/central/) (see comments in `gradle.properties`).
-5. On GitHub, create a **Release** from that tag and attach release notes (can mirror the changelog section).
-
-## 🎯 Quick Start
-
-### 1. Setup (Flexible Usage)
-
-Wrap your content with `SnapNotifyProvider` where you want snackbar functionality:
-
-**App-wide snackbars:**
-```kotlin
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            SnapNotifyProvider {
-                MyAppContent() // Entire app has snackbar access
-            }
-        }
-    }
-}
-```
-
-**Screen-specific snackbars:**
 ```kotlin
 @Composable
-fun MyScreen() {
+fun NotificationExample() {
     SnapNotifyProvider {
-        // Only this screen and its children can show snackbars
-        ScreenContent()
-    }
-}
-```
-
-**Feature-scoped snackbars:**
-```kotlin
-@Composable
-fun ShoppingCart() {
-    Card {
-        SnapNotifyProvider {
-            // Snackbars appear within this card's bounds
-            CartItems()
-            AddToCartButton()
+        Button(onClick = { SnapNotify.show("Saved") }) {
+            Text("Show snackbar")
         }
     }
 }
 ```
 
-**Custom styled snackbars:**
-```kotlin
-@Composable
-fun MyScreen() {
-    SnapNotifyProvider(
-        style = SnackbarStyle.error() // Pre-built error styling
-    ) {
-        ScreenContent()
-    }
-}
-```
+For application-wide notifications, put the provider around your application content in `setContent` instead. Hilt is optional.
 
-### 2. Usage (Anywhere in your app)
+## Should I use SnapNotify?
 
-```kotlin
-// Simple message
-SnapNotify.show("Operation completed successfully!")
+| Your situation | Suggested approach |
+| --- | --- |
+| One screen with a simple snackbar | Compose's built-in SnackbarHostState may be enough; no additional dependency is necessary. |
+| Notifications triggered from several Composables or ViewModels | SnapNotify offers a shared API and queue without passing host state to each caller. |
+| Success, error, warning, or information messages | Use the semantic styling helpers. |
+| Strictly isolated notification channels per feature | Review the shared singleton architecture before adopting; provider placement alone should not be treated as an independent message channel. |
 
-// With action button
-SnapNotify.show("Error occurred", "Retry") { 
-    retryOperation() 
-}
+Keep notification calls in your presentation layer rather than adding a UI-library dependency to domain or data code.
 
-// With custom duration
-SnapNotify.show("Long message", duration = SnackbarDuration.Long)
+## Common recipes
 
-// With custom duration in milliseconds
-SnapNotify.show("7 second message", durationMillis = 7000)
-
-// Clear all pending messages
-SnapNotify.clearAll()
-
-// Themed styling methods
-SnapNotify.showSuccess("Operation completed!")
-SnapNotify.showError("Something went wrong!")
-SnapNotify.showWarning("Please check your input!")
-SnapNotify.showInfo("Here's some information!")
-
-// Themed methods with actions
-SnapNotify.showSuccess("File saved!", "View") { openFile() }
-SnapNotify.showError("Upload failed", "Retry") { retryUpload() }
-
-// Themed methods with custom duration
-SnapNotify.showError("Network timeout", "Retry", { retry() }, durationMillis = 8000)
-SnapNotify.showSuccess("Quick success!", durationMillis = 2000)
-
-// Custom styling for specific messages
-val customStyle = SnackbarStyle(
-    containerColor = Color(0xFF6A1B9A),
-    contentColor = Color.White,
-    actionColor = Color(0xFFE1BEE7)
-)
-SnapNotify.showStyled("Custom styled message!", customStyle)
-SnapNotify.showStyled("10 second custom style", customStyle, durationMillis = 10000)
-```
-
-## 🌟 Key Features
-
-### ✅ Flexible Setup
-- Use `SnapNotifyProvider` at any level of your app hierarchy
-- App-wide, screen-specific, or feature-scoped snackbars
-- No `SnackbarHostState` or `CoroutineScope` management needed
-
-### ✅ Thread-Safe
-- Call from ViewModels and Composables safely
-- Background thread support with proper synchronization
-- No more `IllegalStateException` crashes
-
-### ✅ Smart Queue Management  
-- Handles multiple rapid Snackbar triggers gracefully
-- No overlapping or lost messages
-- Singleton architecture prevents duplicate displays
-
-### ✅ Lifecycle-Aware
-- Survives configuration changes
-- Prevents memory leaks
-- Automatic provider deduplication
-
-### ✅ Action Support
-- Optional action buttons with callbacks
-- Seamless integration with your business logic
-
-### ✅ Comprehensive Styling
-- **Pre-built themes**: Success, Error, Warning, Info with semantic colors
-- **Themed methods**: `showSuccess()`, `showError()`, `showWarning()`, `showInfo()`
-- **Custom styling**: `showStyled()` for per-message customization
-- **Full customization**: Colors, shapes, elevation, typography
-- **Provider-level defaults**: Set default styles for entire sections
-- **Material3 integration**: Seamless with your app's design system
-
-## 📖 Detailed Usage
-
-### Basic Messages
+### Styled messages
 
 ```kotlin
-// Simple text message
-SnapNotify.show("Profile updated successfully!")
-
-// Different durations
-SnapNotify.show("Quick message", duration = SnackbarDuration.Short)
-SnapNotify.show("Important info", duration = SnackbarDuration.Long)
-SnapNotify.show("Persistent message", duration = SnackbarDuration.Indefinite)
-
-// Custom durations in milliseconds
-SnapNotify.show("2 second message", durationMillis = 2000)
-SnapNotify.show("30 second timeout", durationMillis = 30000)
+SnapNotify.showSuccess("Profile saved")
+SnapNotify.showError("Upload failed")
+SnapNotify.showWarning("Unsaved changes")
+SnapNotify.showInfo("Update available")
 ```
 
-### Action Buttons
-
-```kotlin
-// With action callback
-SnapNotify.show("Message deleted", "Undo") {
-    undoDelete()
-}
-
-// Error handling with retry
-SnapNotify.show("Network error", "Retry") {
-    viewModel.retryNetworkCall()
-}
-
-// Clear pending messages when navigating or context changes
-SnapNotify.clearAll()
-```
-
-### ⏱️ Custom Duration Control
-
-Precise timing control with millisecond accuracy:
-
-```kotlin
-// Quick notifications (1-3 seconds)
-SnapNotify.show("Quick toast", durationMillis = 1500)
-SnapNotify.showSuccess("Saved!", durationMillis = 2000)
-
-// Standard notifications (4-8 seconds)
-SnapNotify.show("Processing complete", durationMillis = 5000)
-SnapNotify.showInfo("New feature available", durationMillis = 6000)
-
-// Long notifications (10+ seconds)
-SnapNotify.showError("Network error - retrying in 15s", "Retry Now", {
-    retryNetworkCall()
-}, durationMillis = 15000)
-
-// Custom styled with timing
-val urgentStyle = SnackbarStyle(
-    containerColor = Color.Red,
-    contentColor = Color.White
-)
-SnapNotify.showStyled("Critical alert!", urgentStyle, durationMillis = 12000)
-
-// With action buttons - users can still interact before timeout
-SnapNotify.showWarning("Auto-save in 10 seconds", "Save Now", {
-    saveManually()
-}, durationMillis = 10000)
-```
-
-**Key Benefits:**
-- **Precise Control**: Set exact durations from 1ms to several minutes
-- **User Priority**: Action buttons remain functional during custom timeouts
-- **All Methods**: Works with `show()`, `showSuccess()`, `showError()`, `showWarning()`, `showInfo()`, and `showStyled()`
-- **Automatic Cleanup**: Messages auto-dismiss after the specified time
-- **Thread-Safe**: Safe to call from background threads with custom durations
-
-### 🎨 Themed Messages
-
-Quick, semantic styling with pre-built themes:
-
-```kotlin
-// Success messages (green theme)
-SnapNotify.showSuccess("Profile updated successfully!")
-SnapNotify.showSuccess("File uploaded!", "View") { openFile() }
-
-// Error messages (red theme)
-SnapNotify.showError("Network connection failed!")
-SnapNotify.showError("Save failed", "Retry") { attemptSave() }
-
-// Warning messages (orange theme)
-SnapNotify.showWarning("Low storage space!")
-SnapNotify.showWarning("Unsaved changes", "Save") { saveChanges() }
-
-// Info messages (blue theme)
-SnapNotify.showInfo("New feature available!")
-SnapNotify.showInfo("Update available", "Download") { startUpdate() }
-```
-
-### 🎨 Custom Styling
-
-**Per-message custom styling:**
-```kotlin
-val customStyle = SnackbarStyle(
-    containerColor = Color(0xFF6A1B9A),
-    contentColor = Color.White,
-    actionColor = Color(0xFFE1BEE7),
-    shape = RoundedCornerShape(16.dp),
-    elevation = 12.dp
-)
-
-SnapNotify.showStyled("Custom styled message!", customStyle)
-SnapNotify.showStyled("With action", customStyle, "Action") { doAction() }
-```
-
-### Styling Options
-
-**Pre-built themes:**
-```kotlin
-// Success theme (green)
-SnapNotifyProvider(style = SnackbarStyle.success()) {
-    // Content
-}
-
-// Error theme (red)
-SnapNotifyProvider(style = SnackbarStyle.error()) {
-    // Content
-}
-
-// Warning theme (orange)
-SnapNotifyProvider(style = SnackbarStyle.warning()) {
-    // Content
-}
-
-// Info theme (blue)
-SnapNotifyProvider(style = SnackbarStyle.info()) {
-    // Content
-}
-```
-
-**Custom styling:**
-```kotlin
-SnapNotifyProvider(
-    style = SnackbarStyle(
-        containerColor = Color(0xFF9C27B0),
-        contentColor = Color.White,
-        actionColor = Color(0xFFE1BEE7),
-        shape = RoundedCornerShape(16.dp),
-        elevation = 12.dp,
-        messageTextStyle = MaterialTheme.typography.bodyLarge.copy(
-            fontWeight = FontWeight.Medium
-        ),
-        actionTextStyle = MaterialTheme.typography.labelLarge.copy(
-            fontWeight = FontWeight.Bold
-        )
-    )
-) {
-    // Content with custom-styled snackbars
-}
-```
-
-### Clean Architecture Usage
-
-Following best practices, handle UI notifications in the presentation layer:
-
-```kotlin
-// ✅ Recommended: ViewModels handle notifications
-class ProfileViewModel : ViewModel() {
-    private val repository = UserRepository()
-    
-    fun saveProfile() {
-        viewModelScope.launch {
-            try {
-                repository.saveProfile()
-                SnapNotify.showSuccess("Profile saved!")
-            } catch (e: Exception) {
-                SnapNotify.showError("Save failed", "Retry") { saveProfile() }
-            }
-        }
-    }
-}
-
-// ✅ Clean: Repositories focus on data operations
-class UserRepository {
-    suspend fun saveProfile(): Result<Unit> {
-        return try {
-            api.updateProfile()
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-}
-
-// ✅ Alternative: Direct from Composables
-@Composable
-fun SaveButton() {
-    val viewModel: ProfileViewModel = hiltViewModel()
-    
-    Button(
-        onClick = {
-            viewModel.saveProfile()
-            // SnapNotify calls handled in ViewModel
-        }
-    ) {
-        Text("Save")
-    }
-}
-```
-
-## 🏗 Architecture & Best Practices
-
-SnapNotify follows clean architecture principles with proper separation of concerns:
-
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   SnapNotify    │───▶│ SnackbarManager  │───▶│ SnapNotifyVM    │
-│   (Public API)  │    │   (Singleton)    │    │   (ViewModel)   │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-                                │                        │
-                                ▼                        ▼
-                       ┌──────────────────┐    ┌─────────────────┐
-                       │  Message Queue   │    │ SnapNotify UI   │
-                       │   (StateFlow)    │    │  (Composable)   │
-                       └──────────────────┘    └─────────────────┘
-```
-
-### Architectural Layers
-- **Presentation Layer**: ViewModels and Composables handle SnapNotify calls
-- **Domain Layer**: Use Cases return `Result<T>` or throw exceptions
-- **Data Layer**: Repositories focus purely on data operations
-- **UI Layer**: SnapNotifyProvider manages display and styling
-
-### Design Principles
-- **Thread Safety**: Internal mutex synchronization for concurrent access
-- **Clean Architecture**: UI concerns separated from business logic
-- **Reactive Streams**: StateFlow-based message queue management  
-- **Optional DI**: Works with or without dependency injection frameworks
-- **Single Responsibility**: Each component has a focused purpose
-
-## 🔧 Configuration
-
-### Queue Configuration
-
-Control the internal message queue behavior:
-
-```kotlin
-// Configure globally
-SnapNotify.configure(
-    SnapNotifyConfig(
-        maxQueueSize = 100,  // Default is 50
-        onMessageDropped = { droppedMessage ->
-            // Log or monitor dropped messages
-            Log.w("SnapNotify", "Message dropped: $droppedMessage")
-        }
-    )
-)
-
-// Or configure per-provider (feature-scoped)
-SnapNotifyProvider(
-    config = SnapNotifyConfig(
-        maxQueueSize = 20,
-        onMessageDropped = { msg -> /* handle drop */ }
-    )
-) {
-    FeatureContent()
-}
-```
-
-**Queue Management:**
-- When the queue is full, the lowest-priority oldest message is dropped
-- The `onMessageDropped` callback is invoked with the dropped message text
-- Useful for monitoring queue saturation in production
-- Prevents memory issues from unbounded message accumulation
-
-### Enhanced Provider Options
-
-```kotlin
-SnapNotifyProvider(
-    modifier = Modifier.padding(16.dp),
-    style = SnackbarStyle.success(),  // Default style for all messages
-    config = SnapNotifyConfig(maxQueueSize = 50),  // Queue configuration
-    hostAlignment = Alignment.TopCenter,  // Position snackbars at top
-    hostInsets = WindowInsets.statusBars,  // Custom insets
-    placement = NotificationPlacement.TopPill(),  // Or TopBanner / BottomSnackbar
-    hostContent = { hostState, style ->  // Complete customization
-        // Custom snackbar host rendering
-        SnackbarHost(hostState) { data ->
-            // Your custom snackbar UI
-        }
-    }
-) {
-    MyAppContent()
-}
-```
-
-**Key Features:**
-- **hostAlignment**: Position snackbars anywhere (Top, Bottom, Center) when placement is `BottomSnackbar`
-- **hostInsets**: Control padding for system bars and keyboard (IME) on the bottom host
-- **placement**: `BottomSnackbar` (default), `TopPill`, or `TopBanner`
-- **hostContent**: Complete control over snackbar rendering. When set, `placement` is not applied.
-- **config**: Feature-scoped queue configuration
-
-### Rich snackbars and undo
+### Action callbacks
 
 ```kotlin
 SnapNotify.show(
-    title = "File uploaded",
-    message = "Report_Q3.pdf saved to Cloud Drive",
-    leadingIcon = Icons.Filled.CloudDone, // ImageVector from your app
-    actionLabel = "View",
-    onAction = { openFile() },
-    showCloseButton = true,
-    hapticFeedback = SnackbarHapticFeedback.Success
+    message = "Message deleted",
+    actionLabel = "Undo",
+    onAction = { undoDelete() }
 )
+```
 
+`undoDelete()` is application code that you provide.
+
+### Custom durations
+
+```kotlin
+SnapNotify.show("Processing complete", durationMillis = 5000L)
+```
+
+### Undo with a timeout
+
+```kotlin
 SnapNotify.showUndoable(
     message = "Item moved to trash",
-    durationMillis = 5000L,
     onAction = { restoreItem() },
+    durationMillis = 5000L,
     onTimeout = { permanentlyDelete() }
 )
+```
 
+`restoreItem()` and `permanentlyDelete()` are application callbacks. Pressing the snackbar pauses the countdown. The action and close control do not run `onTimeout`. Do not use a UI timeout as your only mechanism for durable background work.
+
+### Top notifications
+
+```kotlin
 SnapNotifyProvider(placement = NotificationPlacement.TopPill()) {
     AppContent()
 }
 ```
 
-`showUndoable` draws a bar that counts down from full to empty. Pressing the snackbar pauses that countdown. `onTimeout` runs when the timer finishes. The close control and the action do not run `onTimeout`.
+`AppContent()` represents your application's Compose content. `TopBanner` and `BottomSnackbar` are also available.
 
-`title`, `leadingIcon`, `showCloseButton`, `showProgressBar`, and `onTimeout` are on `show`, with or without an action. `showUndoable` also takes a `style`.
-
-### Hilt Integration (Optional)
-
-SnapNotify works without any DI framework. If you use Hilt in your project, it integrates seamlessly - no additional setup needed!
-
-## 📋 API Reference
-
-### SnapNotify Object
+### Queue configuration
 
 ```kotlin
-object SnapNotify {
-    // Configuration
-    fun configure(config: SnapNotifyConfig)
-
-    // Each show/showStyled/showSuccess/showError/showWarning/showInfo comes in four
-    // overloads: with or without an action button, and with or without a priority.
-
-    fun show(
-        message: String,
-        duration: SnackbarDuration = SnackbarDuration.Short,
-        durationMillis: Long? = null
+SnapNotify.configure(
+    SnapNotifyConfig(
+        maxQueueSize = 50,
+        onMessageDropped = { message ->
+            // Handle a dropped message if your application needs to.
+        }
     )
-
-    fun show(
-        message: String,
-        actionLabel: String,
-        onAction: () -> Unit,
-        duration: SnackbarDuration = SnackbarDuration.Short,
-        durationMillis: Long? = null
-    )
-
-    // Priority-carrying variants. `priority` is required so these stay distinct from the
-    // signatures above; `hapticFeedback` defaults to the theme's own feedback.
-    fun show(
-        message: String,
-        priority: SnackbarPriority,
-        duration: SnackbarDuration = SnackbarDuration.Short,
-        durationMillis: Long? = null,
-        hapticFeedback: SnackbarHapticFeedback = SnackbarHapticFeedback.None
-    )
-
-    fun show(
-        message: String,
-        actionLabel: String,
-        onAction: () -> Unit,
-        priority: SnackbarPriority,
-        duration: SnackbarDuration = SnackbarDuration.Short,
-        durationMillis: Long? = null,
-        hapticFeedback: SnackbarHapticFeedback = SnackbarHapticFeedback.None
-    )
-
-    // showSuccess, showError, showWarning and showInfo follow the same four shapes.
-    // showError and showUrgent are announced assertively to accessibility services.
-    fun showSuccess(message: String, duration: SnackbarDuration = SnackbarDuration.Short, durationMillis: Long? = null)
-    fun showError(message: String, duration: SnackbarDuration = SnackbarDuration.Short, durationMillis: Long? = null)
-    fun showWarning(message: String, duration: SnackbarDuration = SnackbarDuration.Short, durationMillis: Long? = null)
-    fun showInfo(message: String, duration: SnackbarDuration = SnackbarDuration.Short, durationMillis: Long? = null)
-
-    // showStyled takes the style as its second argument.
-    fun showStyled(
-        message: String,
-        style: SnackbarStyle,
-        duration: SnackbarDuration = SnackbarDuration.Short,
-        durationMillis: Long? = null
-    )
-
-    // Preempts a displaying lower-priority snackbar. The interrupted message goes back on the
-    // queue and resumes afterwards, unless the queue is full and it ranks below everything in it.
-    fun showUrgent(
-        message: String,
-        actionLabel: String? = null,
-        onAction: (() -> Unit)? = null,
-        duration: SnackbarDuration = SnackbarDuration.Short,
-        durationMillis: Long? = null,
-        style: SnackbarStyle? = null
-    )
-
-    // Management
-    fun clearAll()
-
-    fun showUndoable(
-        message: String,
-        onAction: () -> Unit,
-        actionLabel: String = "Undo",
-        durationMillis: Long = 5000L,
-        showProgressBar: Boolean = true,
-        onTimeout: (() -> Unit)? = null
-    )
-}
-```
-
-### SnapNotifyProvider Composable
-
-```kotlin
-@Composable
-fun SnapNotifyProvider(
-    modifier: Modifier = Modifier,
-    style: SnackbarStyle? = null,
-    config: SnapNotifyConfig? = null,
-    hostAlignment: Alignment = Alignment.BottomCenter,
-    hostInsets: WindowInsets = WindowInsets.navigationBars.union(WindowInsets.ime),
-    hostContent: (@Composable BoxScope.(SnackbarHostState, SnackbarStyle) -> Unit)? = null,
-    placement: NotificationPlacement = NotificationPlacement.BottomSnackbar,
-    content: @Composable () -> Unit
 )
+
+// Clear queued and current notification state when appropriate for your UX.
+SnapNotify.clearAll()
 ```
 
-### SnapNotifyConfig Class
+The queue is bounded. When full, the lowest-priority oldest message is dropped; do not treat it as guaranteed delivery.
 
-```kotlin
-data class SnapNotifyConfig @JvmOverloads constructor(
-    val maxQueueSize: Int = DEFAULT_MAX_QUEUE_SIZE,                     // Maximum pending messages (default: 50)
-    val onMessageDropped: ((String) -> Unit)? = null,                   // Callback when message is dropped
-    val deduplicationStrategy: DeduplicationStrategy = DeduplicationStrategy.DropDuplicate, // Drop duplicate or replace
-    val isHapticFeedbackEnabled: Boolean = true,                        // Subtle tactile vibrations on display
-    val isAccessibilityScalingEnabled: Boolean = true                   // Automatic 2x+ duration scaling with TalkBack
-)
-```
+## Compatibility and integration notes
 
-### Enums
+- Android minimum SDK: API 24.
+- This is a Jetpack Compose library, not a replacement for Android system notifications.
+- Keep a provider in the composition wherever notifications must be displayed.
+- Notifications use shared singleton state. Review placement and queue-clearing behavior when integrating multiple providers or navigation destinations.
+- Custom host rendering is available through `hostContent`; when supplied, the normal `placement` rendering is not applied.
+- Repository toolchain badges and build configuration are not a tested consumer compatibility matrix. Validate the published artifact against your application's Kotlin and Compose versions before rollout.
 
-```kotlin
-enum class SnackbarPriority { Low, Normal, High, Urgent }
+## Try the sample
 
-enum class SnackbarHapticFeedback { Auto, Success, Warning, Error, Gesture, None }
-
-enum class DeduplicationStrategy { None, DropDuplicate, ReplaceExisting }
-
-sealed interface NotificationPlacement {
-    data object BottomSnackbar : NotificationPlacement
-    data class TopPill(val topInsetPadding: WindowInsets? = null) : NotificationPlacement
-    data class TopBanner(val topInsetPadding: WindowInsets? = null) : NotificationPlacement
-}
-```
-
-### SnackbarStyle Data Class
-
-```kotlin
-data class SnackbarStyle(
-    val containerColor: Color = Color.Unspecified,
-    val contentColor: Color = Color.Unspecified,
-    val actionColor: Color = Color.Unspecified,
-    val shape: Shape? = null,
-    val elevation: Dp? = null,
-    val messageTextStyle: TextStyle? = null,
-    val actionTextStyle: TextStyle? = null
-) {
-    companion object {
-        @Composable fun default(): SnackbarStyle
-        @Composable fun success(): SnackbarStyle
-        @Composable fun error(): SnackbarStyle
-        @Composable fun warning(): SnackbarStyle
-        @Composable fun info(): SnackbarStyle
-    }
-}
-```
-
-## 🧪 Testing
-
-SnapNotify includes **105 unit tests**. They cover the queue, deduplication, the countdown clock, placement, and the public `show` methods.
-
-### Test Coverage
-- **✅ Public API Methods**: All SnapNotify methods tested
-- **✅ Queue Management**: Backpressure, message dropping, and configuration
-- **✅ Custom Duration System**: Complete SnackbarDurationWrapper functionality
-- **✅ Styling System**: Complete SnackbarStyle functionality
-- **✅ Thread Safety**: Concurrent access and race condition handling
-- **✅ Action Callbacks**: User interaction handling
-- **✅ Timeout Handling**: Custom duration timeout behavior
-- **✅ Edge Cases**: Boundary value testing and error scenarios
-- **✅ Integration Tests**: End-to-end behavior verification
-
-### Running Tests
-```bash
-# Run unit tests
-./gradlew :snapnotify:test
-
-# Run all tests including UI tests
-./gradlew :snapnotify:check
-
-# View test report
-open snapnotify/build/reports/tests/testDebugUnitTest/index.html
-```
-
-The comprehensive test suite ensures reliability and catches regressions during development.
-
-## 📱 Example App
-
-Check out the `SnapNotifyDemo` module for a complete demo:
+Clone the repository and run the demo on an attached Android device or emulator:
 
 ```bash
-# Build and install demo app
 ./gradlew :SnapNotifyDemo:installDebug
 ```
 
-## 📄 License
+The sample uses `project(":snapnotify")`. It exercises local source, not the Maven Central artifact.
 
+## Releases and migration
+
+See [CHANGELOG.md](CHANGELOG.md) for release history. Pin an explicit dependency version and review release notes before upgrading.
+
+## Report an integration problem
+
+[Open an issue](https://github.com/iVamsi/SnapNotify/issues) with your library, Kotlin, Compose, and Android versions, a minimal reproducer, and expected versus actual behavior. For provider or queue problems, include where the provider is installed and how messages are triggered. Do not include secrets or private application data.
+
+## Development and testing
+
+```bash
+./gradlew :snapnotify:test
+./gradlew :snapnotify:check
+./gradlew check
 ```
+
+Tests cover the queue, deduplication, countdown behavior, placement, and public show methods. Run the tasks to obtain current results rather than relying on a fixed test-count badge.
+
+To validate a locally published artifact, run `./gradlew :snapnotify:publishToMavenLocal` and configure a separate consumer module with `mavenLocal()` and `io.github.ivamsi:snapnotify:1.2.0`. This does not verify the artifact hosted on Maven Central.
+
+## Releasing (maintainers)
+
+1. Update coordinates in `snapnotify/build.gradle.kts`, demo versionCode/versionName, CHANGELOG.md, and README dependency snippets.
+2. Run `./gradlew check`.
+3. Commit, create an annotated `vX.Y.Z` tag, and push the branch and tag.
+4. Run `./gradlew :snapnotify:publishAndReleaseToMavenCentral` with the required Central Portal credentials and signing configuration. See [publishing setup](https://vanniktech.github.io/gradle-maven-publish-plugin/central/) and comments in gradle.properties.
+5. Create a GitHub Release from the tag with the release notes.
+
+## License
+
 Copyright 2025 Vamsi Vaddavalli
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-```
+Licensed under the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0). The software is provided on an AS IS basis, without warranties or conditions of any kind. See the repository's license terms for details.
