@@ -1,0 +1,33 @@
+import org.gradle.api.artifacts.repositories.MavenArtifactRepository
+
+// This script changes only the verification invocation, not normal demo builds.
+def dependencyMode = gradle.startParameter.projectProperties.get('consumerDependency') ?: 'source'
+if (!(dependencyMode in ['source', 'published'])) {
+    throw new GradleException('consumerDependency must be source or published')
+}
+
+if (dependencyMode == 'published') {
+    gradle.settingsEvaluated { settings ->
+        def repositories = settings.dependencyResolutionManagement.repositories
+        repositories.findAll {
+            it instanceof MavenArtifactRepository && it.url.scheme == 'file'
+        }.each { repositories.remove(it) }
+    }
+}
+
+gradle.beforeProject { project ->
+    if (project.path == ':SnapNotifyDemo') {
+        project.pluginManager.withPlugin('com.android.application') {
+            project.extensions.getByName('androidComponents').finalizeDsl { android ->
+                android.buildTypes.getByName('release').minifyEnabled = true
+            }
+        }
+        if (dependencyMode == 'published') {
+            project.configurations.configureEach {
+                resolutionStrategy.dependencySubstitution {
+                    substitute(project(':snapnotify')).using(module('io.github.ivamsi:snapnotify:1.2.0'))
+                }
+            }
+        }
+    }
+}

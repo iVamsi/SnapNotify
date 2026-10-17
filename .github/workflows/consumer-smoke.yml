@@ -1,0 +1,53 @@
+name: Consumer smoke checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: consumer-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  consumer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        dependency: [source, published]
+        variant: [Debug, Release]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Install compile SDK
+        shell: bash
+        run: sdkmanager 'platforms;android-37'
+      - name: Build consumer
+        shell: bash
+        env:
+          CONSUMER_DEPENDENCY: ${{ matrix.dependency }}
+          CONSUMER_VARIANT: ${{ matrix.variant }}
+        run: |
+          bash ./gradlew \
+            -I scripts/consumer-smoke.init.gradle \
+            -PconsumerDependency="$CONSUMER_DEPENDENCY" \
+            ":SnapNotifyDemo:assemble${CONSUMER_VARIANT}" \
+            --stacktrace
+      - name: Upload release shrinking diagnostics
+        if: always() && matrix.variant == 'Release'
+        uses: actions/upload-artifact@v7
+        with:
+          name: consumer-${{ matrix.dependency }}-${{ matrix.variant }}
+          path: SnapNotifyDemo/build/outputs/mapping/release/
+          if-no-files-found: ignore
+          retention-days: 14
