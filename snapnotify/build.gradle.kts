@@ -79,7 +79,7 @@ mavenPublishing {
     publishToMavenCentral(automaticRelease = true)
     signAllPublications()
     
-    coordinates("io.github.ivamsi", "snapnotify", "1.2.0")
+    coordinates("io.github.ivamsi", "snapnotify", "1.3.0")
 
     pom {
         name.set("SnapNotify")

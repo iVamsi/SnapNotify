@@ -5,6 +5,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.vamsi.snapnotify.core.SnackbarManager
 import com.vamsi.snapnotify.core.SnackbarMessage
+import java.util.concurrent.ConcurrentHashMap
+
+internal data class SnackbarPreset(
+    val style: SnackbarStyle,
+    val hapticFeedback: SnackbarHapticFeedback,
+    val isAssertive: Boolean = false,
+)
 
 /**
  * Public API object for SnapNotify library.
@@ -31,6 +38,14 @@ import com.vamsi.snapnotify.core.SnackbarMessage
  * ```
  */
 object SnapNotify {
+    internal val defaultChannel by lazy { SnapNotifyChannel("", SnackbarManager.getInstance()) }
+    private val channels = ConcurrentHashMap<String, SnapNotifyChannel>()
+
+    /** Returns a process-lifetime channel. Reuse stable IDs and call clear when its work ends. */
+    fun channel(id: String): SnapNotifyChannel {
+        require(id.isNotBlank()) { "Channel ID must not be blank" }
+        return channels.computeIfAbsent(id) { SnapNotifyChannel(it, SnackbarManager()) }
+    }
     
     private val snackbarManager: SnackbarManager by lazy {
         SnackbarManager.getInstance()
@@ -56,6 +71,11 @@ object SnapNotify {
         actionColor = Color(0xFF42A5F5)
     )
     
+    internal val successPreset = SnackbarPreset(successStyle, SnackbarHapticFeedback.Success)
+    internal val errorPreset = SnackbarPreset(errorStyle, SnackbarHapticFeedback.Error, isAssertive = true)
+    internal val warningPreset = SnackbarPreset(warningStyle, SnackbarHapticFeedback.Warning)
+    internal val infoPreset = SnackbarPreset(infoStyle, SnackbarHapticFeedback.None)
+
     /**
      * Internal method to ensure SnapNotify is ready to use.
      * This is automatically called and doesn't require manual initialization.
@@ -76,7 +96,7 @@ object SnapNotify {
     /**
      * Single funnel every public overload routes through, so queue behaviour is defined once.
      */
-    private fun dispatch(
+    internal fun dispatch(
         message: String,
         duration: SnackbarDuration = SnackbarDuration.Short,
         durationMillis: Long? = null,
@@ -84,14 +104,15 @@ object SnapNotify {
         onAction: (() -> Unit)? = null,
         style: SnackbarStyle? = null,
         priority: SnackbarPriority = SnackbarPriority.Normal,
-        hapticFeedback: SnackbarHapticFeedback = SnackbarHapticFeedback.None,
-        isAssertive: Boolean = false,
+        hapticFeedback: SnackbarHapticFeedback? = null,
+        preset: SnackbarPreset? = null,
         title: String? = null,
         leadingIcon: ImageVector? = null,
         leadingIconContentDescription: String? = null,
         showCloseButton: Boolean = false,
         showProgressBar: Boolean = false,
         onTimeout: (() -> Unit)? = null,
+        manager: SnackbarManager = snackbarManager,
     ) {
         val customDuration = durationMillis?.let { SnackbarDurationWrapper.fromMillis(it) }
         val snackbarMessage = SnackbarMessage(
@@ -99,11 +120,11 @@ object SnapNotify {
             duration = if (customDuration != null) SnackbarDuration.Short else duration,
             actionLabel = actionLabel,
             onAction = onAction,
-            style = style,
+            style = style ?: preset?.style,
             customDuration = customDuration,
             priority = priority,
-            hapticFeedback = hapticFeedback,
-            isAssertive = isAssertive,
+            hapticFeedback = hapticFeedback ?: preset?.hapticFeedback ?: SnackbarHapticFeedback.None,
+            isAssertive = preset?.isAssertive == true,
             title = title?.takeIf { it.isNotBlank() },
             leadingIcon = leadingIcon,
             leadingIconContentDescription = leadingIconContentDescription?.takeIf { it.isNotBlank() },
@@ -111,7 +132,7 @@ object SnapNotify {
             showProgressBar = showProgressBar,
             onTimeout = onTimeout,
         )
-        snackbarManager.showMessage(snackbarMessage)
+        manager.showMessage(snackbarMessage)
     }
 
     /**
@@ -297,8 +318,7 @@ object SnapNotify {
             message = message,
             duration = duration,
             durationMillis = durationMillis,
-            style = successStyle,
-            hapticFeedback = SnackbarHapticFeedback.Success,
+            preset = successPreset,
         )
     }
     
@@ -327,8 +347,7 @@ object SnapNotify {
             onAction = onAction,
             duration = duration,
             durationMillis = durationMillis,
-            style = successStyle,
-            hapticFeedback = SnackbarHapticFeedback.Success,
+            preset = successPreset,
         )
     }
     
@@ -351,9 +370,7 @@ object SnapNotify {
             message = message,
             duration = duration,
             durationMillis = durationMillis,
-            style = errorStyle,
-            hapticFeedback = SnackbarHapticFeedback.Error,
-            isAssertive = true,
+            preset = errorPreset,
         )
     }
     
@@ -382,9 +399,7 @@ object SnapNotify {
             onAction = onAction,
             duration = duration,
             durationMillis = durationMillis,
-            style = errorStyle,
-            hapticFeedback = SnackbarHapticFeedback.Error,
-            isAssertive = true,
+            preset = errorPreset,
         )
     }
     
@@ -407,8 +422,7 @@ object SnapNotify {
             message = message,
             duration = duration,
             durationMillis = durationMillis,
-            style = warningStyle,
-            hapticFeedback = SnackbarHapticFeedback.Warning,
+            preset = warningPreset,
         )
     }
     
@@ -437,8 +451,7 @@ object SnapNotify {
             onAction = onAction,
             duration = duration,
             durationMillis = durationMillis,
-            style = warningStyle,
-            hapticFeedback = SnackbarHapticFeedback.Warning,
+            preset = warningPreset,
         )
     }
     
@@ -461,8 +474,7 @@ object SnapNotify {
             message = message,
             duration = duration,
             durationMillis = durationMillis,
-            style = infoStyle,
-            hapticFeedback = SnackbarHapticFeedback.None,
+            preset = infoPreset,
         )
     }
     
@@ -491,8 +503,7 @@ object SnapNotify {
             onAction = onAction,
             duration = duration,
             durationMillis = durationMillis,
-            style = infoStyle,
-            hapticFeedback = SnackbarHapticFeedback.None,
+            preset = infoPreset,
         )
     }
 
@@ -649,7 +660,7 @@ object SnapNotify {
             message = message,
             duration = duration,
             durationMillis = durationMillis,
-            style = successStyle,
+            preset = successPreset,
             priority = priority,
             hapticFeedback = hapticFeedback,
         )
@@ -684,7 +695,7 @@ object SnapNotify {
             onAction = onAction,
             duration = duration,
             durationMillis = durationMillis,
-            style = successStyle,
+            preset = successPreset,
             priority = priority,
             hapticFeedback = hapticFeedback,
         )
@@ -713,10 +724,9 @@ object SnapNotify {
             message = message,
             duration = duration,
             durationMillis = durationMillis,
-            style = errorStyle,
+            preset = errorPreset,
             priority = priority,
             hapticFeedback = hapticFeedback,
-            isAssertive = true,
         )
     }
 
@@ -749,10 +759,9 @@ object SnapNotify {
             onAction = onAction,
             duration = duration,
             durationMillis = durationMillis,
-            style = errorStyle,
+            preset = errorPreset,
             priority = priority,
             hapticFeedback = hapticFeedback,
-            isAssertive = true,
         )
     }
 
@@ -779,7 +788,7 @@ object SnapNotify {
             message = message,
             duration = duration,
             durationMillis = durationMillis,
-            style = warningStyle,
+            preset = warningPreset,
             priority = priority,
             hapticFeedback = hapticFeedback,
         )
@@ -814,7 +823,7 @@ object SnapNotify {
             onAction = onAction,
             duration = duration,
             durationMillis = durationMillis,
-            style = warningStyle,
+            preset = warningPreset,
             priority = priority,
             hapticFeedback = hapticFeedback,
         )
@@ -843,7 +852,7 @@ object SnapNotify {
             message = message,
             duration = duration,
             durationMillis = durationMillis,
-            style = infoStyle,
+            preset = infoPreset,
             priority = priority,
             hapticFeedback = hapticFeedback,
         )
@@ -878,7 +887,7 @@ object SnapNotify {
             onAction = onAction,
             duration = duration,
             durationMillis = durationMillis,
-            style = infoStyle,
+            preset = infoPreset,
             priority = priority,
             hapticFeedback = hapticFeedback,
         )
@@ -911,10 +920,9 @@ object SnapNotify {
             durationMillis = durationMillis,
             actionLabel = actionLabel,
             onAction = onAction,
-            style = style ?: errorStyle,
+            style = style,
+            preset = errorPreset,
             priority = SnackbarPriority.Urgent,
-            hapticFeedback = SnackbarHapticFeedback.Error,
-            isAssertive = true,
         )
     }
 

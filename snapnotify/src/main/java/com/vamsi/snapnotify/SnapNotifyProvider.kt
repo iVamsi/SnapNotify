@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.statusBars
@@ -25,6 +26,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -40,6 +42,8 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.IntOffset
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vamsi.snapnotify.core.SnackbarManager
+import com.vamsi.snapnotify.core.SnackbarMessage
+import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
@@ -51,20 +55,28 @@ import kotlinx.coroutines.withContext
 /**
  * CompositionLocal to track if we're already inside a SnapNotifyProvider.
  */
-internal val LocalSnapNotifyProvider = staticCompositionLocalOf { false }
+internal val LocalSnapNotifyHosts = staticCompositionLocalOf { emptySet<SnackbarManager>() }
+
+/** The nearest provider's channel, or the global channel outside a provider. */
+val LocalSnapNotifyChannel = staticCompositionLocalOf { SnapNotify.defaultChannel }
 
 /**
  * Composable that wraps content and handles snackbar display logic.
  *
- * This composable provides snackbar functionality for its content. Multiple providers
- * in the same composition hierarchy are automatically handled - nested providers will
- * be ignored to prevent duplicate snackbars, and only the outermost provider will
- * handle message display.
+ * If the provider leaves composition while a message is showing, for example when its sheet
+ * closes, the message's `onTimeout` runs because its action can no longer be tapped.
  *
- * @param modifier Modifier to be applied to the container
+ * This composable provides snackbar functionality for its content. Multiple providers
+ * in the same composition hierarchy may serve different channels. A nested provider for
+ * an already hosted channel is ignored. Use one host per channel in separate composition roots.
+ *
+ * @param channel The queue to host.
+ * @param modifier Modifier to be applied to the container. The container fills the available width
+ * and takes the height needed by its content or snackbar, so it fits inside a bottom sheet or dialog.
+ * Pass `Modifier.fillMaxSize()` for a full-screen host.
  * @param style Optional styling configuration for snackbars. If null, uses Material3 defaults
  * @param config Optional configuration for the snackbar queue (max size, drop callback, deduplication).
- * If provided, this will update the global SnapNotify configuration.
+ * If provided, this updates only the selected channel's configuration.
  * @param hostAlignment Alignment for the snackbar host within the provider's Box.
  * Used when [placement] is [NotificationPlacement.BottomSnackbar].
  * @param hostInsets Insets applied to the snackbar host (defaults to navigation + IME).
@@ -77,6 +89,7 @@ internal val LocalSnapNotifyProvider = staticCompositionLocalOf { false }
  */
 @Composable
 fun SnapNotifyProvider(
+    channel: SnapNotifyChannel,
     modifier: Modifier = Modifier,
     style: SnackbarStyle? = null,
     config: SnapNotifyConfig? = null,
@@ -86,18 +99,20 @@ fun SnapNotifyProvider(
     placement: NotificationPlacement = NotificationPlacement.BottomSnackbar,
     content: @Composable () -> Unit,
 ) {
-    val alreadyInProvider = LocalSnapNotifyProvider.current
+    val selectedChannel = channel
+    val manager = selectedChannel.manager
+    val hostedChannels = LocalSnapNotifyHosts.current
 
-    // If we're already inside a provider, just render content without creating another provider
-    if (alreadyInProvider) {
-        content()
+    // An ancestor already hosts this channel; a second host would show each message twice.
+    if (manager in hostedChannels) {
+        CompositionLocalProvider(LocalSnapNotifyChannel provides selectedChannel) { content() }
         return
     }
 
     val scope = rememberCoroutineScope()
-    val snapNotifyState = rememberSimpleSnapNotifyState(scope)
+    val snapNotifyState = rememberSimpleSnapNotifyState(scope, manager)
     val currentMessage = snapNotifyState.currentMessage.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember(manager) { SnackbarHostState() }
     val snackbarStyle = style ?: SnackbarStyle.default()
     val view = LocalView.current
     val context = LocalContext.current
@@ -150,16 +165,29 @@ fun SnapNotifyProvider(
             }
         }
 
-    LaunchedEffect(config) {
-        SnapNotify.initialize()
+    LaunchedEffect(manager, config) {
         if (config != null) {
-            SnapNotify.configure(config)
+            selectedChannel.configure(config)
         }
     }
 
-    LaunchedEffect(currentMessage.value?.id) {
+    val unsettledMessage = remember(manager) { AtomicReference<SnackbarMessage?>(null) }
+    DisposableEffect(manager) {
+        onDispose {
+            // The host is leaving, for example a sheet is closing, so the action can no longer be
+            // tapped and an Undo window has ended. This runs synchronously, before a parent's
+            // onDispose can clear the channel. A message replaced by clear or preemption is no
+            // longer current and is skipped.
+            val message = unsettledMessage.getAndSet(null)
+            if (message != null && manager.messages.value?.id == message.id) {
+                message.onTimeout?.invoke()
+            }
+        }
+    }
+
+    LaunchedEffect(manager, currentMessage.value?.id) {
         val message = currentMessage.value ?: return@LaunchedEffect
-        val activeConfig = config ?: SnackbarManager.getInstance().getConfig()
+        val activeConfig = config ?: manager.getConfig()
 
         if (activeConfig.isHapticFeedbackEnabled) {
             triggerHapticFeedback(view, message.resolveHapticFeedback())
@@ -209,6 +237,7 @@ fun SnapNotifyProvider(
         progress = 1f
         isCountdownPaused.value = false
         var dismissedByTimeout = false
+        unsettledMessage.set(message)
 
         try {
             val result = if (hasOwnDeadline) {
@@ -237,6 +266,7 @@ fun SnapNotifyProvider(
                 snackbarHostState.showSnackbar(visuals)
             }
 
+            unsettledMessage.set(null)
             if (result == SnackbarResult.ActionPerformed) {
                 message.onAction?.invoke()
             } else if (dismissedByTimeout) {
@@ -249,14 +279,83 @@ fun SnapNotifyProvider(
         }
     }
 
-    CompositionLocalProvider(LocalSnapNotifyProvider provides true) {
-        Box(modifier = modifier.fillMaxSize()) {
+    CompositionLocalProvider(
+        LocalSnapNotifyHosts provides (hostedChannels + manager),
+        LocalSnapNotifyChannel provides selectedChannel,
+    ) {
+        Box(modifier = modifier.fillMaxWidth()) {
             content()
             val messageStyle = currentMessage.value?.style ?: snackbarStyle
             resolvedHostContent(snackbarHostState, messageStyle)
         }
     }
 }
+
+/**
+ * Hosts the channel named [channel], creating it on first use. See the [SnapNotifyChannel]
+ * overload for the other parameters.
+ *
+ * @param channel A stable feature ID passed to [SnapNotify.channel]. Must not be blank.
+ */
+@Composable
+fun SnapNotifyProvider(
+    channel: String,
+    modifier: Modifier = Modifier,
+    style: SnackbarStyle? = null,
+    config: SnapNotifyConfig? = null,
+    hostAlignment: Alignment = Alignment.BottomCenter,
+    hostInsets: WindowInsets = WindowInsets.navigationBars.union(WindowInsets.ime),
+    hostContent: (@Composable BoxScope.(SnackbarHostState, SnackbarStyle) -> Unit)? = null,
+    placement: NotificationPlacement = NotificationPlacement.BottomSnackbar,
+    content: @Composable () -> Unit,
+) = SnapNotifyProvider(
+    channel = SnapNotify.channel(channel),
+    modifier = modifier,
+    style = style,
+    config = config,
+    hostAlignment = hostAlignment,
+    hostInsets = hostInsets,
+    hostContent = hostContent,
+    placement = placement,
+    content = content,
+)
+
+// The parameter list matches 1.2.0 so the Compose JVM signature and default-argument masks stay the same.
+/**
+ * Hosts the global queue that [SnapNotify] calls target. Place it once near the root of the app.
+ *
+ * The container fills the screen. Other parameters match the [SnapNotifyChannel] overload.
+ *
+ * @param modifier Modifier applied to the full-screen container.
+ * @param style Optional styling for snackbars. If null, uses Material3 defaults.
+ * @param config Optional configuration for the global queue.
+ * @param hostAlignment Alignment of the snackbar host when [placement] is [NotificationPlacement.BottomSnackbar].
+ * @param hostInsets Insets applied to the snackbar host (defaults to navigation + IME).
+ * @param hostContent Optional slot that replaces the default snackbar host. Placement is ignored when set.
+ * @param placement Where the default host anchors.
+ * @param content The content to wrap.
+ */
+@Composable
+fun SnapNotifyProvider(
+    modifier: Modifier = Modifier,
+    style: SnackbarStyle? = null,
+    config: SnapNotifyConfig? = null,
+    hostAlignment: Alignment = Alignment.BottomCenter,
+    hostInsets: WindowInsets = WindowInsets.navigationBars.union(WindowInsets.ime),
+    hostContent: (@Composable BoxScope.(SnackbarHostState, SnackbarStyle) -> Unit)? = null,
+    placement: NotificationPlacement = NotificationPlacement.BottomSnackbar,
+    content: @Composable () -> Unit,
+) = SnapNotifyProvider(
+    channel = SnapNotify.defaultChannel,
+    modifier = modifier.fillMaxSize(),
+    style = style,
+    config = config,
+    hostAlignment = hostAlignment,
+    hostInsets = hostInsets,
+    hostContent = hostContent,
+    placement = placement,
+    content = content,
+)
 
 // Keeps the v1.1.0 JVM signature so callers compiled against it still link.
 @Deprecated("Binary compatibility only", level = DeprecationLevel.HIDDEN)

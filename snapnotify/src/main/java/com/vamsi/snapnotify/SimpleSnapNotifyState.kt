@@ -59,11 +59,12 @@ internal class SimpleSnapNotifyState(
  */
 @Composable
 internal fun rememberSimpleSnapNotifyState(
-    coroutineScope: CoroutineScope
+    coroutineScope: CoroutineScope,
+    snackbarManager: SnackbarManager = SnackbarManager.getInstance(),
 ): SimpleSnapNotifyState {
-    return remember {
+    return remember(coroutineScope, snackbarManager) {
         SimpleSnapNotifyState(
-            snackbarManager = SnackbarManager.getInstance(),
+            snackbarManager = snackbarManager,
             coroutineScope = coroutineScope
         )
     }

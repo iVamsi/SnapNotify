@@ -104,6 +104,7 @@ fun DemoScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text("Tap buttons to see SnapNotify in action!")
+            ScopedChannelDemo()
 
             Spacer(modifier = Modifier.height(32.dp))
 

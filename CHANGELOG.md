@@ -4,6 +4,35 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.3.0] - 2026-10-21
+
+### Added
+
+- Named channels with independent priority queues, deduplication, overflow limits, and configuration.
+- `SnapNotify.channel(id)` and `SnapNotifyChannel.show`, themed helpers, `showUndoable`, and `clear`.
+- Providers that accept a channel object or ID, and `LocalSnapNotifyChannel` for the nearest host.
+  These providers fill the available width and allow enough height for their content or snackbar,
+  including in compact sheets and dialogs.
+- Dialog and bottom-sheet examples that host scoped notifications using the existing provider.
+
+### Changed
+
+- Built with Kotlin **2.4.21**, Jetpack Compose BOM **2026.09.00**, core-ktx **1.19.1**, and AGP
+  **9.4.1**. Apps that upgrade receive the newer Compose BOM and Kotlin stdlib through the POM.
+
+### Fixed
+
+- When a provider leaves composition while a message is showing, such as a sheet closing during an
+  Undo countdown, the message's `onTimeout` now runs. Before, neither `onAction` nor `onTimeout` ran.
+  This also applies to the global provider, for example on a configuration change.
+
+### Compatibility
+
+- Global `SnapNotify` calls retain their existing queue and provider defaults. Providers for distinct
+  channels may nest; repeated ancestors for the same channel suppress duplicate rendering.
+- The 1.1 and 1.2 Compose provider entry points remain available for compiled callers.
+- Named channels persist for the process lifetime. Use stable feature IDs and clear completed work.
+
 ## [1.2.0] - 2026-09-22
 
 ### Added
@@ -50,6 +79,7 @@ two-property `copy`, and destructuring signatures while adding the v1.1 configur
 - Kotlin **2.3.20**, Jetpack Compose BOM **2026.03.01**, AndroidX (core-ktx 1.18.0, lifecycle 2.10.0, activity-compose 1.13.0), Hilt **2.59.2**, AppCompat **1.7.1**, Gradle Maven Publish plugin **0.36.0**.
 - README badges and maintainer-facing docs for developing and releasing.
 
+[1.3.0]: https://github.com/iVamsi/SnapNotify/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/iVamsi/SnapNotify/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/iVamsi/SnapNotify/compare/v1.0.6...v1.1.0
 [1.0.6]: https://github.com/iVamsi/SnapNotify/compare/v1.0.5...v1.0.6
