@@ -29,9 +29,6 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v6
-      - name: Install compile SDK
-        shell: bash
-        run: sdkmanager 'platforms;android-37'
       - name: Build consumer
         shell: bash
         env:

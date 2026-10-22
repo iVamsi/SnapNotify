@@ -1,12 +1,48 @@
 # SnapNotify
 
 [![Android Weekly](https://androidweekly.net/issues/issue-692/badge)](https://androidweekly.net/issues/issue-692)
-[![Maven Central](https://img.shields.io/badge/Maven%20Central-1.2.0-red.svg)](https://central.sonatype.com/artifact/io.github.ivamsi/snapnotify/1.2.0)
+[![Maven Central](https://img.shields.io/badge/Maven%20Central-1.3.0-red.svg)](https://central.sonatype.com/artifact/io.github.ivamsi/snapnotify/1.3.0)
 [![License](https://img.shields.io/badge/License-Apache%202.0-orange.svg)](https://opensource.org/licenses/Apache-2.0)
 
 Show Jetpack Compose snackbars from Composables or ViewModels without passing SnackbarHostState through your application. SnapNotify provides a shared message queue, semantic styling, action callbacks, and optional top notifications.
 
 ![SnapNotify demo](demo.gif)
+
+## Scoped channels
+
+Use a channel when a dialog, bottom sheet, or pane needs its own notification queue:
+
+```kotlin
+val cart = SnapNotify.channel("cart")
+cart.showSuccess("Cart saved")
+cart.showUndoable("Item removed", onAction = { restoreItem() })
+
+SnapNotifyProvider { // Existing global queue
+    MainContent()
+    if (sheetOpen) {
+        ModalBottomSheet(onDismissRequest = { sheetOpen = false }) {
+            SnapNotifyProvider(channel = "cart") {
+                CartContent()
+            }
+        }
+    }
+}
+```
+
+Use the same provider inside `Dialog { ... }`; no separate host adapter is needed. A channel provider
+fills the available width and takes the height needed by its content or snackbar. A compact sheet
+or dialog may grow while a message is visible so that the message and its controls fit. Pass
+`Modifier.fillMaxSize()` for a full-screen host. It accepts the same placement, insets, styling, and
+host slot as the global provider. `LocalSnapNotifyChannel.current` returns the nearest provider's channel.
+
+Each channel has independent configuration, priority, deduplication, and overflow behavior. Configure
+it with `cart.configure(SnapNotifyConfig(...))` and clear it with `cart.clear()`. Global `SnapNotify`
+calls still target the global queue, including calls made inside a scoped provider.
+
+Channel IDs are case-sensitive and must not be blank. The factory caches channels for the process
+lifetime: use stable feature IDs, and clear queues when a feature closes to release pending callbacks.
+Use one provider per channel across separate composition roots. Nested providers for an already
+hosted channel reuse the ancestor host. Different channels may nest and display simultaneously.
 
 ## Installation
 
@@ -27,7 +63,7 @@ Add the library to your application module:
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-    implementation("io.github.ivamsi:snapnotify:1.2.0")
+    implementation("io.github.ivamsi:snapnotify:1.3.0")
 }
 ```
 
@@ -55,7 +91,7 @@ For application-wide notifications, put the provider around your application con
 | One screen with a simple snackbar | Compose's built-in SnackbarHostState may be enough; no additional dependency is necessary. |
 | Notifications triggered from several Composables or ViewModels | SnapNotify offers a shared API and queue without passing host state to each caller. |
 | Success, error, warning, or information messages | Use the semantic styling helpers. |
-| Strictly isolated notification channels per feature | Review the shared singleton architecture before adopting; provider placement alone should not be treated as an independent message channel. |
+| Isolated notification queues per feature | Use a named channel and a provider for that channel. Provider placement alone does not create an independent queue. |
 
 Keep notification calls in your presentation layer rather than adding a UI-library dependency to domain or data code.
 
@@ -134,7 +170,7 @@ The queue is bounded. When full, the lowest-priority oldest message is dropped; 
 - Android minimum SDK: API 24.
 - This is a Jetpack Compose library, not a replacement for Android system notifications.
 - Keep a provider in the composition wherever notifications must be displayed.
-- Notifications use shared singleton state. Review placement and queue-clearing behavior when integrating multiple providers or navigation destinations.
+- Global `SnapNotify` calls use the shared default queue. Named channels have independent queues; clear each channel when its feature's queued work is no longer relevant.
 - Custom host rendering is available through `hostContent`; when supplied, the normal `placement` rendering is not applied.
 - Validate the published artifact against your application's Kotlin and Compose versions before rollout. The repository build configuration does not establish compatibility with every consumer toolchain.
 
@@ -166,7 +202,7 @@ See [CHANGELOG.md](CHANGELOG.md) for release history. Pin an explicit dependency
 
 Tests cover the queue, deduplication, countdown behavior, placement, and public show methods. Run the tasks to obtain current test results.
 
-To validate a locally published artifact, run `./gradlew :snapnotify:publishToMavenLocal` and configure a separate consumer module with `mavenLocal()` and `io.github.ivamsi:snapnotify:1.2.0`. This does not verify the artifact hosted on Maven Central.
+To validate a locally published artifact, run `./gradlew :snapnotify:publishToMavenLocal` and configure a separate consumer module with `mavenLocal()` and `io.github.ivamsi:snapnotify:1.3.0`. This does not verify the artifact hosted on Maven Central.
 
 ## Releasing (maintainers)
 

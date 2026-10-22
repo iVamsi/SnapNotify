@@ -22,12 +22,12 @@ import java.util.PriorityQueue
 import java.util.concurrent.atomic.AtomicLong
 
 /**
- * Thread-safe singleton that manages a prioritized queue of snackbar messages.
+ * Thread-safe queue manager with a global default instance.
  *
  * This class handles message queuing, priority ordering, deduplication, emission,
  * and dismissal in a thread-safe manner.
  */
-internal class SnackbarManager private constructor() {
+internal class SnackbarManager {
 
     companion object {
         @Volatile

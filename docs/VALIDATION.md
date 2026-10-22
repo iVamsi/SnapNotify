@@ -9,11 +9,11 @@ The separate Consumer smoke checks workflow tests four combinations:
 | Dependency | Debug | Release with R8 |
 | --- | --- | --- |
 | Local project source | Assemble demo | Assemble minified demo |
-| Maven Central 1.2.0 | Assemble demo | Assemble minified demo |
+| Maven Central 1.3.0 | Assemble demo | Assemble minified demo |
 
 The init script enables release minification only for this verification invocation. Normal local demo builds are unchanged. Published mode substitutes the demo's project dependency with the fixed Maven coordinate and removes file-based dependency repositories so a Maven Local artifact cannot satisfy that dependency.
 
-Published mode checks the released 1.2.0 artifact, not the source under review. Source mode checks the working checkout, not publication metadata. Neither check publishes artifacts or needs publishing credentials.
+Published mode checks the released 1.3.0 artifact, not the source under review. Source mode checks the working checkout, not publication metadata. Neither check publishes artifacts or needs publishing credentials.
 
 ## Run locally
 
