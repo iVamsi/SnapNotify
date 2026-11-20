@@ -1,10 +1,10 @@
 # SnapNotify
 
 [![Android Weekly](https://androidweekly.net/issues/issue-692/badge)](https://androidweekly.net/issues/issue-692)
-[![Maven Central](https://img.shields.io/badge/Maven%20Central-1.3.0-red.svg)](https://central.sonatype.com/artifact/io.github.ivamsi/snapnotify/1.3.0)
+[![Maven Central](https://img.shields.io/badge/Maven%20Central-2.0.0-red.svg)](https://central.sonatype.com/artifact/io.github.ivamsi/snapnotify/2.0.0)
 [![License](https://img.shields.io/badge/License-Apache%202.0-orange.svg)](https://opensource.org/licenses/Apache-2.0)
 
-Show Jetpack Compose snackbars from Composables or ViewModels without passing SnackbarHostState through your application. SnapNotify provides a shared message queue, semantic styling, action callbacks, and optional top notifications.
+Show Compose Multiplatform and Jetpack Compose snackbars from Composables or ViewModels without passing SnackbarHostState through your application. SnapNotify provides a shared message queue, semantic styling, action callbacks, scoped channels, and optional top notifications across Android, iOS, Desktop (JVM), and Web (WasmJs).
 
 ![SnapNotify demo](demo.gif)
 
@@ -58,12 +58,21 @@ dependencyResolutionManagement {
 }
 ```
 
-Add the library to your application module:
+Add the library to your Compose Multiplatform `commonMain` source set or Android application module:
 
 ```kotlin
-// app/build.gradle.kts
+// shared/build.gradle.kts (Compose Multiplatform)
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            implementation("io.github.ivamsi:snapnotify:2.0.0")
+        }
+    }
+}
+
+// OR app/build.gradle.kts (Android-only)
 dependencies {
-    implementation("io.github.ivamsi:snapnotify:1.3.0")
+    implementation("io.github.ivamsi:snapnotify:2.0.0")
 }
 ```
 
@@ -167,8 +176,8 @@ The queue is bounded. When full, the lowest-priority oldest message is dropped; 
 
 ## Compatibility and integration notes
 
-- Android minimum SDK: API 24.
-- This is a Jetpack Compose library, not a replacement for Android system notifications.
+- Targets: Android (API 24+), iOS (`iosArm64`, `iosSimulatorArm64`), Desktop JVM (Java 21+), and Web (`wasmJs`).
+- This is a Compose Multiplatform / Jetpack Compose UI library, not a replacement for OS system notifications.
 - Keep a provider in the composition wherever notifications must be displayed.
 - Global `SnapNotify` calls use the shared default queue. Named channels have independent queues; clear each channel when its feature's queued work is no longer relevant.
 - Custom host rendering is available through `hostContent`; when supplied, the normal `placement` rendering is not applied.
@@ -176,13 +185,21 @@ The queue is bounded. When full, the lowest-priority oldest message is dropped; 
 
 ## Try the sample
 
-Clone the repository and run the demo on an attached Android device or emulator:
+Clone the repository and run the Android demo on an attached device or emulator:
 
 ```bash
 ./gradlew :SnapNotifyDemo:installDebug
 ```
 
-The sample uses `project(":snapnotify")`. It exercises local source, not the Maven Central artifact.
+Or open the standalone native iOS Xcode demo (`SnapNotifyIosDemo`) directly in Xcode:
+
+```bash
+open SnapNotifyIosDemo/SnapNotifyIosDemo.xcodeproj
+```
+
+Select the `SnapNotifyIosDemo` scheme and press **Run (`Cmd+R`)** to build `:snapnotify` (`SnapNotify.framework`) and launch the SwiftUI app on an iOS Simulator or device.
+
+Both root demos use `project(":snapnotify")`. They exercise local source, not the Maven Central artifact. See [samples/README.md](samples/README.md) for KMM, CMP, Web, macOS Desktop, and Windows Desktop samples.
 
 ## Releases and migration
 
@@ -195,14 +212,14 @@ See [CHANGELOG.md](CHANGELOG.md) for release history. Pin an explicit dependency
 ## Development and testing
 
 ```bash
-./gradlew :snapnotify:test
+./gradlew :snapnotify:allTests
 ./gradlew :snapnotify:check
 ./gradlew check
 ```
 
 Tests cover the queue, deduplication, countdown behavior, placement, and public show methods. Run the tasks to obtain current test results.
 
-To validate a locally published artifact, run `./gradlew :snapnotify:publishToMavenLocal` and configure a separate consumer module with `mavenLocal()` and `io.github.ivamsi:snapnotify:1.3.0`. This does not verify the artifact hosted on Maven Central.
+To validate a locally published artifact, run `./gradlew :snapnotify:publishToMavenLocal` and configure a separate consumer module with `mavenLocal()` and `io.github.ivamsi:snapnotify:2.0.0`. This does not verify the artifact hosted on Maven Central.
 
 ## Releasing (maintainers)
 
