@@ -78,3 +78,8 @@ proguard/
 
 # Kotlin
 .kotlin/
+kotlin-js-store/
+
+# Xcode
+xcuserdata/
+DerivedData/

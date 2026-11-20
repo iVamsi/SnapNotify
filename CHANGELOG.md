@@ -4,6 +4,34 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.0.0] - 2026-11-20
+
+### Added
+
+- **Compose Multiplatform (CMP) Support**: Migrated `:snapnotify` to Kotlin Multiplatform and Compose Multiplatform (`1.12.2` / Material 3 `1.9.0`) under the single `io.github.ivamsi:snapnotify:2.0.0` Maven coordinate.
+- **Multiplatform Targets**:
+  - `android` (API 24+, compileSdk 37)
+  - `iosArm64` and `iosSimulatorArm64` (including static `SnapNotify.framework` export for Xcode)
+  - `jvm` (Desktop JVM 21)
+  - `wasmJs` (Browser WebAssembly)
+- **Swift / UIKit Bridge (`SnapNotifyIos`)**: Added `SnapNotifyIos` in `iosMain` (`import SnapNotify`) with transparent `ComposeUIViewController` hosts (`createHostViewController`, `createScopedHostViewController`) and Swift-friendly notification, placement, configuration, and scoped-channel helpers.
+- **Platform Accessibility & Haptic Adapters (`rememberSnapNotifyPlatform`)**:
+  - **Android**: `AccessibilityManager` exploration/spoken feedback detection and `View.performHapticFeedback` (`CONFIRM`, `REJECT`, `LONG_PRESS`, `CLOCK_TICK`).
+  - **iOS**: `UIAccessibilityIsVoiceOverRunning()` / `UIAccessibilityIsSwitchControlRunning()` accessibility scaling and `UINotificationFeedbackGenerator` / `UIImpactFeedbackGenerator` tactile haptics.
+  - **Desktop (JVM) & Web (WasmJs)**: Delegates haptics to Compose `LocalHapticFeedback` with full queue, timer, and UI parity.
+- **Multiplatform Sample Apps**: Added standalone native iOS Xcode demo (`SnapNotifyIosDemo`) alongside `samples/` for iOS Native, KMM, CMP/CMM, Web (`wasmJs`), macOS Desktop (`.dmg`), and Windows Desktop (`.msi`/`.exe`).
+
+### Changed
+
+- Replaced JVM-only primitives in `commonMain` (`java.util.UUID`, `java.util.PriorityQueue`, `java.util.concurrent.ConcurrentHashMap`, `java.util.concurrent.atomic.*`) with pure Kotlin Multiplatform equivalents (`kotlin.uuid.Uuid`, internal binary-searched priority queue, lock-free atomic reference map, and `kotlin.concurrent.atomics.*`).
+- Replaced the external `androidx.compose.material:material-icons-core` dependency with an inline vector `ImageVector` for the close action icon in `StyledSnackbar`.
+- Narrowed `consumer-rules.pro` to SnapNotify's own `com.vamsi.snapnotify.**` package instead of keeping unrelated `androidx.compose.**` and Hilt classes in consumer apps.
+
+### Compatibility
+
+- Source-compatible with 1.3.0 for Android and multiplatform callers: existing `SnapNotify`, `SnapNotifyChannel`, `SnapNotifyProvider`, `SnapNotifyConfig`, and `NotificationPlacement` calls compile without changes.
+- Because `2.0.0` migrates to Kotlin Multiplatform (`org.jetbrains.compose.*` / `snapnotify-android`) and removes the JVM-only 1.0.x `DefaultConstructorMarker` constructor on `SnapNotifyConfig`, consumers upgrading from `1.x` should recompile against `2.0.0`.
+
 ## [1.3.0] - 2026-10-21
 
 ### Added
@@ -79,6 +107,7 @@ two-property `copy`, and destructuring signatures while adding the v1.1 configur
 - Kotlin **2.3.20**, Jetpack Compose BOM **2026.03.01**, AndroidX (core-ktx 1.18.0, lifecycle 2.10.0, activity-compose 1.13.0), Hilt **2.59.2**, AppCompat **1.7.1**, Gradle Maven Publish plugin **0.36.0**.
 - README badges and maintainer-facing docs for developing and releasing.
 
+[2.0.0]: https://github.com/iVamsi/SnapNotify/compare/v1.3.0...v2.0.0
 [1.3.0]: https://github.com/iVamsi/SnapNotify/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/iVamsi/SnapNotify/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/iVamsi/SnapNotify/compare/v1.0.6...v1.1.0
