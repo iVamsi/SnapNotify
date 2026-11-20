@@ -26,7 +26,7 @@ gradle.beforeProject { project ->
             project.configurations.configureEach {
                 resolutionStrategy.dependencySubstitution { substitutions ->
                     substitutions.substitute(substitutions.project(':snapnotify'))
-                        .using(substitutions.module('io.github.ivamsi:snapnotify:1.3.0'))
+                        .using(substitutions.module('io.github.ivamsi:snapnotify:2.0.0'))
                 }
             }
         }

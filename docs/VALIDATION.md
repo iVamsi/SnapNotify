@@ -9,11 +9,11 @@ The separate Consumer smoke checks workflow tests four combinations:
 | Dependency | Debug | Release with R8 |
 | --- | --- | --- |
 | Local project source | Assemble demo | Assemble minified demo |
-| Maven Central 1.3.0 | Assemble demo | Assemble minified demo |
+| Maven Central 2.0.0 | Assemble demo | Assemble minified demo |
 
 The init script enables release minification only for this verification invocation. Normal local demo builds are unchanged. Published mode substitutes the demo's project dependency with the fixed Maven coordinate and removes file-based dependency repositories so a Maven Local artifact cannot satisfy that dependency.
 
-Published mode checks the released 1.3.0 artifact, not the source under review. Source mode checks the working checkout, not publication metadata. Neither check publishes artifacts or needs publishing credentials.
+Published mode checks the released 2.0.0 artifact, not the source under review. Source mode checks the working checkout, not publication metadata. Neither check publishes artifacts or needs publishing credentials.
 
 ## Run locally
 
@@ -30,7 +30,7 @@ Replace `assembleRelease` with `assembleDebug` for debug verification. Run `bash
 
 The workflow uses the checked-in dependency catalog and Gradle wrapper with Java 21. It does not vary Kotlin, Compose, AGP, Java, or Android runtime versions. A green result establishes only assembly success for those resolved build inputs; it is not a broad version-support matrix.
 
-The repository currently declares AGP 9.4.0, Compose compiler plugin 2.4.20, Compose BOM 2026.09.00, and compile SDK 37. Published dependencies may impose additional version constraints. Record resolved versions when investigating a failure.
+The repository currently declares AGP 9.5.2, Kotlin / Compose compiler plugin 2.4.21, Compose Multiplatform 1.12.2, Compose BOM 2026.09.00, and compile SDK 37. Published dependencies may impose additional version constraints. Record resolved versions when investigating a failure.
 
 These checks cover build-time assembly only. They do not install or launch the application, verify runtime reflection or snackbar behavior on devices, establish accessibility correctness, or test cross-version compatibility.
 
